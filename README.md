@@ -1,4 +1,4 @@
-**Relevent Links**
+**Relevant Links**
 
 https://www.raspberrypi.org/documentation/computers/os.html#gpio-and-the-40-pin-header
 
