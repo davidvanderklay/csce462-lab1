@@ -51,7 +51,7 @@ def PORT(pin):
     GPIO.output(segments['G'], pin & 0x40)
 
 def countdown():
-    """Countdown from 9 to 0 with a 1-second delay between digits."""
+    # counts from 9 to 0 with 1 second increment
     for i in range(9, -1, -1):
         PORT(dat[i])
         if i <= 4:
@@ -80,13 +80,13 @@ def handle_button_press():
 def poll_button():
     # polling method
     while True:
-        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # Button pressed
+        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # button is pressed by something
             handle_button_press()
-            sleep(20)  # 20-second cooldown
-        sleep(0.1)  # Short delay to avoid excessive CPU usage
+            sleep(20)  # cooldown as lights change
+        sleep(0.1)  # delay to minimize cpu utilization
 
 def interrupt_handler(channel):
-    # interrupt handler1
+    # interrupt handler
     handle_button_press()
     sleep(20)  # 20-second cooldown
 
@@ -106,7 +106,10 @@ def blink_light(pin, times):
 if __name__ == '__main__':
     setup()
     try:
-        countdown()  # will call later on
+        # poll_button()  # Polling method
+        setup_interrupt()  # Interrupt method
+        while True:
+            sleep(1)  # keeps running program
     except KeyboardInterrupt:
         print("Keyboard Interrupt Detected")
     finally:
