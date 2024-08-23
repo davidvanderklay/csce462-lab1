@@ -21,9 +21,16 @@ BUTTON_PIN = 23
 def setup():
     GPIO.setwarnings(False) 
     GPIO.setmode(GPIO.BCM)
-    # only does this for the segments
+    # setup segments
     for pin in segments.values():
         GPIO.setup(pin, GPIO.OUT)
+    # setup traffic lights
+    for color in TL1.values():
+        GPIO.setup(color, GPIO.OUT)
+    for color in TL2.values():
+        GPIO.setup(color, GPIO.OUT)
+    # button setup
+    GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     
 
 def PORT(pin):
