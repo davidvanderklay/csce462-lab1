@@ -80,7 +80,7 @@ def handle_button_press():
 def poll_button():
     # polling method
     while True:
-        if GPIO.input(BUTTON_PIN) == GPIO.LOW:  # button is pressed by something
+        if GPIO.input(BUTTON_PIN) == GPIO.HIGH:  # button is pressed by something
             handle_button_press()
             sleep(20)  # cooldown as lights change
         sleep(0.1)  # delay to minimize cpu utilization
@@ -92,7 +92,8 @@ def interrupt_handler(channel):
 
 def setup_interrupt():
     """Setup interrupt for button press."""
-    GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=interrupt_handler, bouncetime=300)
+    GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, bouncetime=300)
+    GPIO.add_event_callback(BUTTON_PIN, handle_button_press)
 
 
 def blink_light(pin, times):
