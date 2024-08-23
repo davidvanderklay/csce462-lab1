@@ -30,7 +30,7 @@ def setup():
     for color in TL2.values():
         GPIO.setup(color, GPIO.OUT)
     # button setup
-    GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
     # sets traffic light 2 to green and nothing else
     GPIO.output(TL2['green'], GPIO.HIGH)
@@ -54,7 +54,22 @@ def countdown():
     """Countdown from 9 to 0 with a 1-second delay between digits."""
     for i in range(9, -1, -1):
         PORT(dat[i])
+        if i <= 4:
+            # Step 3: When countdown reaches 4, TL1 flashes blue until 0
+            blink_light(TL1['blue'], 1)
         sleep(1)
+    # End of countdown, set TL1 red, TL2 green
+    GPIO.output(TL1['red'], GPIO.HIGH)
+    GPIO.output(TL1['green'], GPIO.LOW)
+    GPIO.output(TL2['green'], GPIO.HIGH)
+
+def blink_light(pin, times):
+    """Blink the specified LED a number of times."""
+    for _ in range(times):
+        GPIO.output(pin, GPIO.HIGH)
+        sleep(0.5)
+        GPIO.output(pin, GPIO.LOW)
+        sleep(0.5)
 
 if __name__ == '__main__':
     setup()
