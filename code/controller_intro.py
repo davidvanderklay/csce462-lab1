@@ -56,12 +56,27 @@ def countdown():
         PORT(dat[i])
         if i <= 4:
             # Step 3: When countdown reaches 4, TL1 flashes blue until 0
+            GPIO.output(TL1['green'], GPIO.LOW)
             blink_light(TL1['blue'], 1)
         sleep(1)
+
     # End of countdown, set TL1 red, TL2 green
     GPIO.output(TL1['red'], GPIO.HIGH)
-    GPIO.output(TL1['green'], GPIO.LOW)
+    GPIO.output(TL2['red'], GPIO.LOW)
     GPIO.output(TL2['green'], GPIO.HIGH)
+
+def handle_button_press():
+    """Handle the sequence of events when the button is pressed."""
+    # Step 1: TL2 turns blue, blinks 3 times, then turns red
+    GPIO.output(TL2['green'], GPIO.LOW)
+    blink_light(TL2['blue'], 3)
+    GPIO.output(TL2['blue'], GPIO.LOW)
+    GPIO.output(TL2['red'], GPIO.HIGH)
+    
+    # Step 2: TL1 turns green, start countdown from 9 to 0
+    GPIO.output(TL1['green'], GPIO.HIGH)
+    countdown()
+
 
 def blink_light(pin, times):
     """Blink the specified LED a number of times."""
