@@ -12,6 +12,14 @@ segments = {
     'G': 26
 }
 
+"""
+TODO:
+* connect segment G , needs more jumper wires
+* connect ground to the seven segment display
+* connect both leds / traffic lights based on the pin layouts
+* connect the button pin with a pull down resistor (or modify code accordingly)
+"""
+
 # hex values for what should be enabled
 dat = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F]
 TL1 = {'green': 5, 'blue': 22, 'red': 27}
@@ -91,13 +99,13 @@ def interrupt_handler(channel):
     sleep(20)  # 20-second cooldown
 
 def setup_interrupt():
-    """Setup interrupt for button press."""
+    # interrupt setup
     GPIO.add_event_detect(BUTTON_PIN, GPIO.RISING, bouncetime=300)
     GPIO.add_event_callback(BUTTON_PIN, handle_button_press)
 
 
 def blink_light(pin, times):
-    """Blink the specified LED a number of times."""
+    # blinks led times times
     for _ in range(times):
         GPIO.output(pin, GPIO.HIGH)
         sleep(0.5)
@@ -110,7 +118,7 @@ if __name__ == '__main__':
         # poll_button()  # Polling method
         setup_interrupt()  # Interrupt method
         while True:
-            sleep(1)  # keeps running program
+            sleep(1)  # keeps running without draining resources
     except KeyboardInterrupt:
         print("Keyboard Interrupt Detected")
     finally:
