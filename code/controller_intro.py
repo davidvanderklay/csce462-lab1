@@ -14,6 +14,9 @@ segments = {
 
 # hex values for what should be enabled
 dat = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F]
+TL1 = {'green': 5, 'blue': 22, 'red': 27}
+TL2 = {'green': 17, 'blue': 4, 'red': 18}
+BUTTON_PIN = 23
 
 def setup():
     GPIO.setwarnings(False) 
