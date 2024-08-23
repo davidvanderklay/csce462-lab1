@@ -22,8 +22,8 @@ TODO:
 
 # hex values for what should be enabled
 dat = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F]
-TL1 = {'green': 5, 'blue': 22, 'red': 27}
-TL2 = {'green': 17, 'blue': 4, 'red': 18}
+TL1 = {'green': 5, 'blue': 22, 'red': 12}
+TL2 = {'green': 17, 'blue': 4, 'red': 24}
 BUTTON_PIN = 23
 
 def setup():
@@ -42,21 +42,21 @@ def setup():
 
     # sets traffic light 2 to green and nothing else
     GPIO.output(TL2['green'], GPIO.HIGH)
-    GPIO.output(TL1['green'], GPIO.LOW)
-    GPIO.output(TL1['blue'], GPIO.LOW)
-    GPIO.output(TL1['red'], GPIO.HIGH)
+    GPIO.output(TL1['green'], GPIO.HIGH)
+    GPIO.output(TL1['blue'], GPIO.HIGH)
+    GPIO.output(TL1['red'], GPIO.LOW)
     GPIO.output(TL2['blue'], GPIO.LOW)
     GPIO.output(TL2['red'], GPIO.LOW)
     
 
 def PORT(pin):
-    GPIO.output(segments['A'], pin & 0x01)
-    GPIO.output(segments['B'], pin & 0x02)
-    GPIO.output(segments['C'], pin & 0x04)
-    GPIO.output(segments['D'], pin & 0x08)
-    GPIO.output(segments['E'], pin & 0x10)
-    GPIO.output(segments['F'], pin & 0x20)
-    GPIO.output(segments['G'], pin & 0x40)
+    GPIO.output(segments['A'], not (pin & 0x01))
+    GPIO.output(segments['B'], not (pin & 0x02))
+    GPIO.output(segments['C'], not (pin & 0x04))
+    GPIO.output(segments['D'], not (pin & 0x08))
+    GPIO.output(segments['E'], not (pin & 0x10))
+    GPIO.output(segments['F'], not (pin & 0x20))
+    GPIO.output(segments['G'], not (pin & 0x40))
 
 def countdown():
     # counts from 9 to 0 with 1 second increment
@@ -64,25 +64,27 @@ def countdown():
         PORT(dat[i])
         if i <= 4:
             # Step 3: When countdown reaches 4, TL1 flashes blue until 0
-            GPIO.output(TL1['green'], GPIO.LOW)
+            GPIO.output(TL1['green'], GPIO.HIGH)
             blink_light(TL1['blue'], 1)
         sleep(1)
 
     # End of countdown, set TL1 red, TL2 green
-    GPIO.output(TL1['red'], GPIO.HIGH)
+    GPIO.output(TL1['red'], GPIO.LOW)
     GPIO.output(TL2['red'], GPIO.LOW)
     GPIO.output(TL2['green'], GPIO.HIGH)
-
-def handle_button_press():
+    GPIO.output(TL1['blue'],GPIO.HIGH)
+def handle_button_press(channel):
     """Handle the sequence of events when the button is pressed."""
     # Step 1: TL2 turns blue, blinks 3 times, then turns red
     GPIO.output(TL2['green'], GPIO.LOW)
     blink_light(TL2['blue'], 3)
+    
     GPIO.output(TL2['blue'], GPIO.LOW)
     GPIO.output(TL2['red'], GPIO.HIGH)
     
     # Step 2: TL1 turns green, start countdown from 9 to 0
-    GPIO.output(TL1['green'], GPIO.HIGH)
+    GPIO.output(TL1['red'], GPIO.HIGH)
+    GPIO.output(TL1['green'], GPIO.LOW)
     countdown()
 
 def poll_button():
@@ -115,7 +117,7 @@ def blink_light(pin, times):
 if __name__ == '__main__':
     setup()
     try:
-        # poll_button()  # Polling method
+       # poll_button()  # Polling method
         setup_interrupt()  # Interrupt method
         while True:
             sleep(1)  # keeps running without draining resources
