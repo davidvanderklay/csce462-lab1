@@ -31,6 +31,14 @@ def setup():
         GPIO.setup(color, GPIO.OUT)
     # button setup
     GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+    # sets traffic light 2 to green and nothing else
+    GPIO.output(TL2['green'], GPIO.HIGH)
+    GPIO.output(TL1['green'], GPIO.LOW)
+    GPIO.output(TL1['blue'], GPIO.LOW)
+    GPIO.output(TL1['red'], GPIO.HIGH)
+    GPIO.output(TL2['blue'], GPIO.LOW)
+    GPIO.output(TL2['red'], GPIO.LOW)
     
 
 def PORT(pin):
