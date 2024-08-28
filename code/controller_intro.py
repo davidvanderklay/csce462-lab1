@@ -12,6 +12,8 @@ segments = {
     'G': 26
 }
 
+cooldown = False
+
 """
 TODO:
 * connect segment G , needs more jumper wires
@@ -74,18 +76,21 @@ def countdown():
     GPIO.output(TL2['green'], GPIO.HIGH)
     GPIO.output(TL1['blue'],GPIO.HIGH)
 def handle_button_press(channel):
-    """Handle the sequence of events when the button is pressed."""
-    # Step 1: TL2 turns blue, blinks 3 times, then turns red
-    GPIO.output(TL2['green'], GPIO.LOW)
-    blink_light(TL2['blue'], 3)
-    
-    GPIO.output(TL2['blue'], GPIO.LOW)
-    GPIO.output(TL2['red'], GPIO.HIGH)
-    
-    # Step 2: TL1 turns green, start countdown from 9 to 0
-    GPIO.output(TL1['red'], GPIO.HIGH)
-    GPIO.output(TL1['green'], GPIO.LOW)
-    countdown()
+    global cooldown
+    if not cooldown:
+        """Handle the sequence of events when the button is pressed."""
+        # Step 1: TL2 turns blue, blinks 3 times, then turns red
+        cooldown = True
+        GPIO.output(TL2['green'], GPIO.LOW)
+        blink_light(TL2['blue'], 3)
+        
+        GPIO.output(TL2['blue'], GPIO.LOW)
+        GPIO.output(TL2['red'], GPIO.HIGH)
+        
+        # Step 2: TL1 turns green, start countdown from 9 to 0
+        GPIO.output(TL1['red'], GPIO.HIGH)
+        GPIO.output(TL1['green'], GPIO.LOW)
+        countdown()
 
 def poll_button():
     # polling method
@@ -98,7 +103,7 @@ def poll_button():
 def interrupt_handler(channel):
     # interrupt handler
     handle_button_press()
-    sleep(20)  # 20-second cooldown
+    # sleep(20)  # 20-second cooldown
 
 def setup_interrupt():
     # interrupt setup
