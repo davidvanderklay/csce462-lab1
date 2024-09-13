@@ -83,11 +83,15 @@ def generate_waveform(shape, frequency, max_voltage):
             time.sleep(0.1)
 
 def main():
-    while True:
-        print("Press the button to start.")
-        GPIO.wait_for_edge(BUTTON_PIN, GPIO.RISING)
-        shape, frequency, max_voltage = get_user_input()
-        generate_waveform(shape, frequency, max_voltage)
+    print("Press the button to start.")
+    
+    # polling loop to wait for the button press
+    while GPIO.input(BUTTON_PIN) == GPIO.LOW:
+        time.sleep(0.01) # save cpu
+    
+    print("Button pressed, collecting user input.")
+    shape, frequency, max_voltage = get_user_input()
+    generate_waveform(shape, frequency, max_voltage)
 
 if __name__ == "__main__":
     try:
