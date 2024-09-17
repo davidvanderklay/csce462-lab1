@@ -33,6 +33,8 @@ def detect_waveform_shape(data):
     max_val = np.max(data)
     min_val = np.min(data)
     amplitude = max_val - min_val
+    if amplitude == 0:
+        return "Unknown Waveform (Flat Line)"
     # makes it so signal data varies from 0 to 1
     normalized_data = (data - min_val) / amplitude
 
