@@ -14,7 +14,7 @@ from adafruit_mcp3xxx.analog_in import AnalogIn
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 
 # create the cs (chip select)
-cs = digitalio.DigitalInOut(board.D22)
+cs = digitalio.DigitalInOut(board.D7)
 
 # create the mcp object
 mcp = MCP.MCP3008(spi, cs)
@@ -22,13 +22,14 @@ mcp = MCP.MCP3008(spi, cs)
 # create an analog input channel on pin 0
 chan0 = AnalogIn(mcp, MCP.P0)
 
-print('Raw ADC Value: ', chan0.value)
-print('ADC Voltage: ' + str(chan0.voltage) + 'V')
+print("Raw ADC Value: ", chan0.value)
+print("ADC Voltage: " + str(chan0.voltage) + "V")
 
-last_read = 0       # this keeps track of the last potentiometer value
-tolerance = 250     # to keep from being jittery we'll only change
-                    # volume when the pot has moved a significant amount
-                    # on a 16-bit ADC
+last_read = 0  # this keeps track of the last potentiometer value
+tolerance = 250  # to keep from being jittery we'll only change
+# volume when the pot has moved a significant amount
+# on a 16-bit ADC
+
 
 def remap_range(value, left_min, left_max, right_min, right_max):
     # this remaps a value from original (left) range to new (right) range
@@ -41,6 +42,7 @@ def remap_range(value, left_min, left_max, right_min, right_max):
 
     # Convert the 0-1 range into a value in the right range.
     return int(right_min + (valueScaled * right_span))
+
 
 while True:
     # we'll assume that the pot didn't move
@@ -60,9 +62,10 @@ while True:
         set_volume = remap_range(trim_pot, 0, 65535, 0, 100)
 
         # set OS volume playback volume
-        print('Volume = {volume}%' .format(volume = set_volume))
-        set_vol_cmd = 'sudo amixer cset numid=1 -- {volume}% > /dev/null' \
-        .format(volume = set_volume)
+        print("Volume = {volume}%".format(volume=set_volume))
+        set_vol_cmd = "sudo amixer cset numid=1 -- {volume}% > /dev/null".format(
+            volume=set_volume
+        )
         os.system(set_vol_cmd)
 
         # save the potentiometer reading for the next loop
