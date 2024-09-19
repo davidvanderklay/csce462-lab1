@@ -19,8 +19,13 @@ samples = 500  # Number of samples to analyze
 threshold = 0.2  # Threshold for signal variation
 
 
+# Denoising using a moving average
+def denoise_signal(signal, window_size=50):
+    return np.convolve(signal, np.ones(window_size) / window_size, mode="same")
+
+
 def sample_waveform():
-    # sampel the adc for readings
+    # sample the adc for readings
     data = []
     for _ in range(samples):
         data.append(chan0.voltage)
@@ -35,54 +40,70 @@ def detect_waveform_shape(data):
     amplitude = max_val - min_val
     if amplitude == 0:
         return "Unknown Waveform (Flat Line)"
-    # makes it so signal data varies from 0 to 1
+
+    # normalize signal between 0 and 1
     normalized_data = (data - min_val) / amplitude
 
-    # return square if flat regions seem to exist around 0 and 1
-    if np.all(normalized_data < 0.5 + threshold) and np.all(
-        normalized_data > 0.5 - threshold
-    ):
-        return "Square Wave"
-    # return sine if sign of second derivative not changing rapidly
-    elif np.all(np.abs(np.diff(np.sign(np.diff(normalized_data)))) <= 1):
+    # Denoise the signal
+    denoised_data = denoise_signal(normalized_data)
+
+    # Check for Sine Wave using smoothness
+    first_diff = np.diff(denoised_data)
+    second_diff = np.diff(first_diff)
+    is_smooth = np.all(np.abs(second_diff) < 0.005)  # Tighter threshold for smoothness
+
+    # Debugging output
+    print(f"Amplitude: {amplitude}")
+    print(f"Normalized Data Range: {np.min(denoised_data)} to {np.max(denoised_data)}")
+    print(f"Smoothness Check: {is_smooth}")
+
+    if is_smooth:
         return "Sine Wave"
-    # return triangle increases and decreases about linear
-    elif np.all(np.diff(normalized_data) > 0) or np.all(np.diff(normalized_data) < 0):
+
+    # Square Wave: Detect flat regions around 0 and 1
+    threshold = 0.85
+    high_vals = denoised_data > threshold
+    low_vals = denoised_data < (1 - threshold)
+    if np.mean(high_vals) > 0.45 and np.mean(low_vals) > 0.45:
+        return "Square Wave"
+
+    # Triangle Wave: Check if it increases and decreases linearly
+    rising_slope = np.mean(first_diff[: len(first_diff) // 2])
+    falling_slope = np.mean(first_diff[len(first_diff) // 2 :])
+    if np.abs(rising_slope) < 0.2 and np.abs(falling_slope) < 0.2:
         return "Triangle Wave"
-    else:
-        return "Unknown Waveform"
+
+    return "Unknown Waveform"
 
 
 def calculate_frequency(data):
-    # check for when the second derivative is negative - local maxima
+    # check for local maxima by detecting negative second derivatives
     peaks = (np.diff(np.sign(np.diff(data))) < 0).nonzero()[0] + 1
-    # look for at least 2 peaks to compute period
+    # compute frequency if there are at least two peaks
     if len(peaks) >= 2:
         period = np.mean(np.diff(peaks)) / sampling_rate
-        # compute frequency from period
         frequency = 1 / period
         return frequency
     return None
 
 
-# loop forever very cool
+# Main loop
 last_waveform = None
 while True:
-    # call the sample function to get data
     data = sample_waveform()
 
-    # loop shape detection
+    # Detect waveform shape
     waveform = detect_waveform_shape(data)
 
-    # check if changes are made to the waveform
+    # Print only if waveform changes
     if waveform != last_waveform:
         print(f"Detected waveform: {waveform}")
         last_waveform = waveform
 
-    # compute frequency
+    # Calculate and print frequency
     frequency = calculate_frequency(data)
     if frequency:
         print(f"Frequency: {frequency:.2f} Hz")
 
-    # pause between readings to save cpu
+    # Small pause to save CPU
     time.sleep(0.5)
