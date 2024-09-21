@@ -1,67 +1,60 @@
-import os
-import time
 import busio
 import digitalio
 import board
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
-import numpy as np
+import time
+import RPi.GPIO as GPIO
 
-# SPI and MCP3008 setup
+# Create the SPI bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
-cs = digitalio.DigitalInOut(board.D5)  # Chip select pin
+
+# Create the CS (chip select)
+cs = digitalio.DigitalInOut(board.D5)
+
+# Create the MCP object
 mcp = MCP.MCP3008(spi, cs)
-chan = AnalogIn(mcp, MCP.P0)  # Using channel 0
+
+# Create an analog input channel on pin 0
+chan = AnalogIn(mcp, MCP.P0)
 
 
-def denoise_signal(signal, window_size=20):
-    """Denoise the signal using a moving average."""
-    return np.convolve(signal, np.ones(window_size) / window_size, mode="same")
+def calculate_frequency(samples, sample_rate):
+    zero_crossings = 0
+    previous_sample = samples[0]
+
+    for sample in samples[1:]:
+        if previous_sample < 1.65 and sample >= 1.65:  # Adjust for centering at 1.65V
+            zero_crossings += 1
+        previous_sample = sample
+
+    frequency = (zero_crossings / 2) * (sample_rate / len(samples))
+    return frequency
 
 
-def calculate_frequency(data, sampling_rate=500):
-    """Calculate the frequency of the signal from the sampled data."""
-    # Denoise the signal
-    # denoised_data = denoise_signal(data)
-    denoised_data = data
+def main():
+    sample_rate = 1000  # Samples per second
+    duration = 5  # Duration in seconds
+    num_samples = sample_rate * duration
 
-    # Detect zero-crossings for more accurate frequency measurement
-    zero_crossings = np.where(np.diff(np.sign(denoised_data)))[0]
-    print(f"Zero Crossings: {zero_crossings}")  # Debugging output
+    samples = []
 
-    if len(zero_crossings) < 2:
-        return None  # Not enough zero crossings to calculate frequency
+    print("Collecting samples...")
+    for _ in range(num_samples):
+        voltage = chan.voltage  # Read the voltage
+        samples.append(voltage)  # Store the voltage value
+        time.sleep(1.0 / sample_rate)
 
-    # Calculate the periods between zero crossings
-    crossing_intervals = np.diff(zero_crossings)
+    frequency = calculate_frequency(samples, sample_rate)
+    print(f"Calculated Frequency: {frequency:.2f} Hz")
 
-    # Calculate the average period
-    if len(crossing_intervals) > 0:
-        average_period = np.mean(crossing_intervals) / sampling_rate
-        frequency = 1 / average_period
-        return frequency
-
-    return None
+    # Cleanup
+    GPIO.cleanup()
 
 
-def sample_waveform(chan, samples=1000, sampling_rate=500):
-    """Sample the waveform from the ADC."""
-    data = []
-    for _ in range(samples):
-        data.append(chan.voltage)  # Read voltage from the ADC channel
-        time.sleep(1 / sampling_rate)  # Wait for the sampling period
-    return np.array(data)
-
-
-def detect_frequency(chan, samples=1000, sampling_rate=500):
-    data = sample_waveform(chan, samples, sampling_rate)
-    frequency = calculate_frequency(data, sampling_rate)
-
-    if frequency:
-        print(f"Detected Frequency: {frequency:.2f} Hz")
-    else:
-        print("Frequency could not be determined.")
-
-
-# Run the frequency detection
-detect_frequency(chan)
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nExiting program.")
+        GPIO.cleanup()
