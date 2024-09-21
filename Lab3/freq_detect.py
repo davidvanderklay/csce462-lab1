@@ -107,4 +107,3 @@ if __name__ == "__main__":
         print("\nExiting program.")
     finally:
         GPIO.cleanup()
-
