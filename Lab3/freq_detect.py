@@ -16,7 +16,7 @@ chan0 = AnalogIn(mcp, MCP.P0)
 
 # parameters for detecting wave
 sampling_rate = 1000  # Hz
-samples = 1000  # Increased number of samples to stabilize readings
+samples = 10000  # Increased number of samples to stabilize readings
 threshold = 0.2  # Threshold for signal variation
 
 
