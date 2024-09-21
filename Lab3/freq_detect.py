@@ -2,22 +2,32 @@ import numpy as np
 
 
 # Denoising using a moving average
-def denoise_signal(signal, window_size=50):
+def denoise_signal(
+    signal, window_size=10
+):  # Reduced window size for quicker changes in the signal
     return np.convolve(signal, np.ones(window_size) / window_size, mode="same")
 
 
-def calculate_frequency(data, sampling_rate=1000):
+def calculate_frequency(data, sampling_rate=1000, threshold=0.05):
     # Denoise the signal
     denoised_data = denoise_signal(data)
 
-    # Detect peaks and valleys to capture both positive and negative cycles
+    # Detect peaks (local maxima) and valleys (local minima)
     peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
     valleys = (np.diff(np.sign(np.diff(denoised_data))) > 0).nonzero()[0] + 1
 
-    # Combine peaks and valleys for full waveform cycle detection
-    all_extrema = sorted(np.concatenate((peaks, valleys)))
+    # Filter out small peaks and valleys (insignificant changes)
+    significant_peaks = [
+        p for p in peaks if denoised_data[p] > (np.max(denoised_data) * threshold)
+    ]
+    significant_valleys = [
+        v for v in valleys if denoised_data[v] < (np.min(denoised_data) * threshold)
+    ]
 
-    # Ensure that we're counting complete cycles (i.e., both peaks and valleys)
+    # Combine peaks and valleys for full cycle detection
+    all_extrema = sorted(np.concatenate((significant_peaks, significant_valleys)))
+
+    # Ensure that we're counting complete cycles
     if len(all_extrema) >= 2:
         # Calculate the period based on the distance between every second extremum
         full_cycle_periods = np.diff(
@@ -27,7 +37,7 @@ def calculate_frequency(data, sampling_rate=1000):
         # Calculate the average period and frequency
         period = np.mean(full_cycle_periods) / sampling_rate
         frequency = 1 / period
-        print(f"Detected extrema (peaks and valleys): {all_extrema}")
+        print(f"Detected significant extrema (peaks and valleys): {all_extrema}")
         print(f"Calculated full cycle period: {period} seconds")
         return frequency
 
