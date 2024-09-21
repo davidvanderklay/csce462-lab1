@@ -82,13 +82,11 @@ def detect_waveform_shape(samples):
             f"Average Absolute Slope at Peaks: {avg_abs_peak_slope:.4f}, Max Slope at Peaks: {max_peak_slope:.4f}"
         )
 
-    # Determine waveform shape based on slope characteristics
-    if (
-        num_peaks > num_troughs and avg_abs_peak_slope > 0.1
-    ):  # More peaks than troughs with significant slope
-        return "Triangle Wave"
-    elif num_peaks / num_troughs > 2 and max_peak_slope > 0.3:  # Square wave condition
+    # Determine waveform shape based on updated conditions
+    if num_troughs > num_peaks * 1.5:  # Square wave: 50% more troughs than peaks
         return "Square Wave"
+    elif avg_abs_peak_slope > 0.1:  # More peaks than troughs with significant slope
+        return "Triangle Wave"
     elif max_peak_slope < 0.1:  # Low slope indicates a smoother waveform
         return "Sine Wave"
 
@@ -96,7 +94,7 @@ def detect_waveform_shape(samples):
 
 
 def main():
-    sample_rate = 2000  # Samples per second
+    sample_rate = 1000  # Samples per second
     duration = 5  # Duration in seconds
     num_samples = sample_rate * duration
 
