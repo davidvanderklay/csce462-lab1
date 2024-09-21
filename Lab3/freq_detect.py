@@ -26,6 +26,7 @@ def calculate_frequency(data, sampling_rate=500):
 
     # Detect zero-crossings for more accurate frequency measurement
     zero_crossings = np.where(np.diff(np.sign(denoised_data)))[0]
+    print(f"Zero Crossings: {zero_crossings}")  # Debugging output
 
     if len(zero_crossings) < 2:
         return None  # Not enough zero crossings to calculate frequency
