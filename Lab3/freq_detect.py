@@ -14,13 +14,13 @@ mcp = MCP.MCP3008(spi, cs)
 chan0 = AnalogIn(mcp, MCP.P0)
 
 # Parameters for detecting wave
-sampling_rate = 1000  # Hz
-samples = 500  # Number of samples to analyze
+sampling_rate = 500  # Hz
+samples = 1000  # Number of samples to analyze
 threshold = 0.2  # Threshold for signal variation
 
 
 # Denoising using a moving average
-def denoise_signal(signal, window_size=50):
+def denoise_signal(signal, window_size=20):
     return np.convolve(signal, np.ones(window_size) / window_size, mode="same")
 
 
@@ -34,7 +34,7 @@ def sample_waveform():
 
 
 # Frequency calculation from sampled data
-def calculate_frequency(data, sampling_rate=1000, threshold=0.05):
+def calculate_frequency(data, sampling_rate=500, threshold=0.05):
     # Denoise the signal
     denoised_data = denoise_signal(data)
 
