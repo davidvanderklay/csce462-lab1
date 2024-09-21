@@ -31,39 +31,24 @@ def moving_average_filter(samples, window_size=5):
 def detect_waveform_shape(samples, sample_rate):
     if np.max(samples) < 0.1:
         return "No Voltage"
-    # Apply the moving average filter to denoise the signal
-    filtered_samples = moving_average_filter(samples)
 
-    # Normalize the signal
+    filtered_samples = moving_average_filter(samples)
     normalized_samples = (filtered_samples - np.mean(filtered_samples)) / np.std(
         filtered_samples
     )
 
-    # Perform FFT
     fft_result = np.fft.fft(normalized_samples)
-    fft_freq = np.fft.fftfreq(len(normalized_samples), 1 / sample_rate)
-    positive_freqs = fft_freq[: len(fft_freq) // 2]
     positive_fft_result = np.abs(fft_result[: len(fft_result) // 2]) / len(
         normalized_samples
     )
 
-    # Find the fundamental frequency
-    fundamental_freq_index = (
-        np.argmax(positive_fft_result[1:]) + 1
-    )  # Ignore DC component
-    fundamental_freq = positive_freqs[fundamental_freq_index]
+    fundamental_freq_index = np.argmax(positive_fft_result[1:]) + 1
 
-    # Calculate statistical measures
     crest_factor = np.max(np.abs(normalized_samples)) / np.sqrt(
         np.mean(normalized_samples**2)
     )
     kurtosis = stats.kurtosis(normalized_samples)
 
-    # Calculate derivatives
-    first_derivative = np.diff(normalized_samples)
-    second_derivative = np.diff(first_derivative)
-
-    # Decision logic
     if (
         np.max(positive_fft_result[fundamental_freq_index::2])
         > 0.1 * positive_fft_result[fundamental_freq_index]
@@ -77,34 +62,58 @@ def detect_waveform_shape(samples, sample_rate):
 
 
 def main():
-    sample_rate = 2000  # Increased to 2000 Hz
-    duration = 1  # Reduced to 1 second for faster processing
-    num_samples = sample_rate * duration
-    samples = []
+    sample_rate = 2000  # 2000 Hz
+    duration = 0.5  # 0.5 seconds for faster updates
+    num_samples = int(sample_rate * duration)
+
+    last_shape = None
+    last_frequency = None
 
     try:
         while True:
-            samples.clear()  # Clear previous samples
-
-            print("Collecting samples...")
+            samples = []
             start_time = time.time()
+
             for _ in range(num_samples):
                 voltage = chan.voltage
                 samples.append(voltage)
 
             actual_sample_rate = num_samples / (time.time() - start_time)
-            print(f"Actual sample rate: {actual_sample_rate:.2f} Hz")
-
             samples = np.array(samples)
-            frequency = calculate_frequency(samples, actual_sample_rate)
+
             shape = detect_waveform_shape(samples, actual_sample_rate)
 
-            print(f"Calculated Frequency: {frequency:.2f} Hz")
-            print(f"Detected Waveform Shape: {shape}")
+            if shape != "No Voltage":
+                frequency = calculate_frequency(samples, actual_sample_rate)
 
-            time.sleep(0.5)  # Optional delay before the next reading
+                # Check for significant changes
+                if (
+                    (shape != last_shape)
+                    or (last_frequency is None)
+                    or (abs(frequency - last_frequency) > 1)
+                ):
+                    print(f"Detected Waveform Shape: {shape}")
+                    print(f"Calculated Frequency: {frequency:.2f} Hz")
+                    print(f"Actual sample rate: {actual_sample_rate:.2f} Hz")
+                    print("---")
+
+                    last_shape = shape
+                    last_frequency = frequency
+
+            elif shape != last_shape:
+                print("No Voltage detected")
+                print("---")
+                last_shape = shape
+                last_frequency = None
+
+            time.sleep(0.1)  # Short delay to prevent excessive CPU usage
 
     except KeyboardInterrupt:
         print("\nExiting program.")
     finally:
         GPIO.cleanup()
+
+
+if __name__ == "__main__":
+    main()
+
