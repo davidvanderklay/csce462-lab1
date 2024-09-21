@@ -89,7 +89,7 @@ def main():
         time.sleep(1.0 / sample_rate)
 
     frequency = calculate_frequency(samples, sample_rate)
-    shape = detect_waveform_shape(np.array(samples))
+    shape = detect_waveform_shape_fft(np.array(samples), sample_rate)
 
     print(f"Calculated Frequency: {frequency:.2f} Hz")
     print(f"Detected Waveform Shape: {shape}")
