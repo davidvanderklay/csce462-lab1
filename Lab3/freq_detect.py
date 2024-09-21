@@ -78,27 +78,30 @@ def detect_waveform_shape(data, low_voltage_threshold=0.1):
     if len(peaks) < 2 or len(valleys) < 2:
         return "Unknown Waveform (Not enough features)"
 
-    peak_intervals = np.diff(peaks)
-    valley_intervals = np.diff(valleys)
+    peak_amplitudes = denoised_data[peaks]
+    valley_amplitudes = denoised_data[valleys]
 
     # Check for square wave characteristics
+    peak_intervals = np.diff(peaks)
+    valley_intervals = np.diff(valleys)
     if np.abs(np.mean(peak_intervals) - np.mean(valley_intervals)) < 0.2 * np.mean(
         peak_intervals
     ):
         return "Square Wave"
 
     # Check for triangle wave characteristics
-    peak_amplitudes = denoised_data[peaks]
-    valley_amplitudes = denoised_data[valleys]
+    if len(peaks) > 1 and len(valleys) > 1:
+        # Calculate slopes between peaks and valleys
+        peak_slopes = np.diff(peak_amplitudes) / peak_intervals[:-1]
+        valley_slopes = np.diff(valley_amplitudes) / valley_intervals[:-1]
 
-    # Check for triangular characteristics (linear rise and fall)
-    if (
-        np.all(np.diff(peak_amplitudes) > 0)
-        and np.all(np.diff(valley_amplitudes) < 0)
-        and np.all(np.diff(peaks) > 1)
-        and np.all(np.diff(valleys) > 1)
-    ):
-        return "Triangle Wave"
+        # Check for triangular slope characteristics (positive slope for peaks, negative for valleys)
+        if (
+            np.all(peak_slopes > 0)
+            and np.all(valley_slopes < 0)
+            and np.abs(np.mean(peak_slopes)) < 2 * np.abs(np.mean(valley_slopes))
+        ):  # Tolerance
+            return "Triangle Wave"
 
     return "Sine Wave"
 
