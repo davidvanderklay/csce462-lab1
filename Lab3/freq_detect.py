@@ -86,8 +86,7 @@ def detect_waveform_shape(data, low_voltage_threshold=0.1):
 
     # Check for Sine Wave using smoothness
     first_diff = np.diff(denoised_data)
-    second_diff = np.diff(first_diff)
-    is_smooth = np.all(np.abs(second_diff) < 0.005)  # Tighter threshold for smoothness
+    is_smooth = np.std(first_diff) < 0.02  # Tighter threshold for smoothness
 
     # Debugging output
     print(f"Amplitude: {amplitude}")
@@ -98,17 +97,22 @@ def detect_waveform_shape(data, low_voltage_threshold=0.1):
         return "Sine Wave"
 
     # Square Wave: Detect flat regions around 0 and 1
-    threshold = 0.85
+    threshold = 0.75  # Adjusted threshold for square wave
     high_vals = denoised_data > threshold
     low_vals = denoised_data < (1 - threshold)
-    if np.mean(high_vals) > 0.45 and np.mean(low_vals) > 0.45:
+    if np.mean(high_vals) > 0.4 and np.mean(low_vals) > 0.4:
         return "Square Wave"
 
-    # Triangle Wave: Check if it increases and decreases linearly
-    rising_slope = np.mean(first_diff[: len(first_diff) // 2])
-    falling_slope = np.mean(first_diff[len(first_diff) // 2 :])
-    if np.abs(rising_slope) < 0.1 and np.abs(falling_slope) < 0.1:  # Adjusted tolerance
-        return "Triangle Wave"
+    # Triangle Wave: Check for linear characteristics
+    rising_edges = np.where(np.diff(first_diff) > 0)[0]
+    falling_edges = np.where(np.diff(first_diff) < 0)[0]
+
+    # Ensure at least one rising and falling edge
+    if len(rising_edges) > 0 and len(falling_edges) > 0:
+        rising_slope = np.mean(first_diff[rising_edges])
+        falling_slope = np.mean(first_diff[falling_edges])
+        if np.abs(rising_slope) < 0.1 and np.abs(falling_slope) < 0.1:
+            return "Triangle Wave"
 
     return "Unknown Waveform"
 
