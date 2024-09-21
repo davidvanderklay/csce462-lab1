@@ -42,6 +42,9 @@ def detect_waveform_shape(samples):
     # Calculate the first derivative (slope) to analyze behavior around peaks
     slopes = np.diff(normalized_samples)
 
+    # Print the slopes for debugging
+    print(f"Slopes: {slopes}")
+
     # Check for zero crossings to find peaks and their characteristics
     peak_indices = np.where((slopes[:-1] > 0) & (slopes[1:] < 0))[0] + 1  # Peaks
     trough_indices = np.where((slopes[:-1] < 0) & (slopes[1:] > 0))[0] + 1  # Troughs
@@ -58,6 +61,9 @@ def detect_waveform_shape(samples):
     for index in peak_indices:
         if index > 0 and index < len(slopes) - 1:
             peak_slopes.append((slopes[index - 1], slopes[index]))
+
+    # Print peak slopes for debugging
+    print(f"Peak Slopes: {peak_slopes}")
 
     # Determine waveform shape based on slope characteristics
     square_wave_detected = any(
