@@ -21,6 +21,14 @@ chan = AnalogIn(mcp, MCP.P0)
 
 # Threshold for low voltage detection
 LOW_VOLTAGE_THRESHOLD = 0.5
+SAMPLE_RATE = 2000  # Increased samples per second
+DURATION = 5  # Duration in seconds
+
+
+def moving_average(samples, window_size=5):
+    if len(samples) < window_size:
+        return samples
+    return np.convolve(samples, np.ones(window_size) / window_size, mode="valid")
 
 
 def calculate_frequency(samples, sample_rate):
@@ -28,7 +36,6 @@ def calculate_frequency(samples, sample_rate):
     previous_sample = samples[0]
 
     for sample in samples[1:]:
-        # Check for zero crossing
         if previous_sample < 1.65 and sample >= 1.65:
             zero_crossings += 1
         previous_sample = sample
@@ -47,7 +54,6 @@ def identify_waveform(samples):
     peak_count = len(peaks)
     trough_count = len(troughs)
 
-    # Prioritize square wave detection
     if peak_count == trough_count and peak_count > 0:
         return "Square Wave"
     elif peak_count >= 2 and trough_count >= 2:
@@ -59,10 +65,7 @@ def identify_waveform(samples):
 
 
 def main():
-    sample_rate = 1000  # Samples per second
-    duration = 5  # Duration in seconds
-    num_samples = sample_rate * duration
-
+    num_samples = SAMPLE_RATE * DURATION
     samples = []
 
     print("Collecting samples...")
@@ -73,14 +76,17 @@ def main():
             continue  # Ignore low voltage readings
 
         samples.append(voltage)  # Store the voltage value
-        time.sleep(1.0 / sample_rate)
+        time.sleep(1.0 / SAMPLE_RATE)
 
     if not samples:
         print("No valid waveform detected.")
         return
 
-    frequency = calculate_frequency(samples, sample_rate)
-    waveform_shape = identify_waveform(samples)
+    # Apply moving average to smooth out noise
+    smoothed_samples = moving_average(samples)
+
+    frequency = calculate_frequency(smoothed_samples, SAMPLE_RATE)
+    waveform_shape = identify_waveform(smoothed_samples)
 
     print(f"Detected Waveform: {waveform_shape}")
     print(f"Calculated Frequency: {frequency:.2f} Hz")
