@@ -61,12 +61,15 @@ def detect_waveform_shape(samples):
     # Analyze waveform shape
     if num_peaks == 0 and num_troughs == 0:
         return "No Voltage"
-    elif num_peaks > 10:  # Adjust the threshold based on your requirements
-        # Check for square wave characteristics
-        if std_dev < 0.1:  # Low variance indicates a flat signal
-            return "Square Wave"
-        return "Triangle Wave"
-    elif num_peaks > 2 and num_peaks <= 10:
+
+    # Adjusting criteria for better classification
+    peak_to_trough_ratio = num_peaks / num_troughs if num_troughs > 0 else float("inf")
+
+    if std_dev < 0.1 and num_peaks > 5:  # Low variance and significant peaks
+        return "Square Wave"
+    elif (
+        num_peaks > 10 and peak_to_trough_ratio > 1.5
+    ):  # More peaks than troughs indicates a triangle
         return "Triangle Wave"
     else:
         return "Sine Wave"
