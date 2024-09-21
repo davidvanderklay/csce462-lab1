@@ -16,7 +16,7 @@ chan0 = AnalogIn(mcp, MCP.P0)
 
 # parameters for detecting wave
 sampling_rate = 1000  # Hz
-samples = 10000  # Increased number of samples to stabilize readings
+samples = 1000  # Increased number of samples to stabilize readings
 threshold = 0.2  # Threshold for signal variation
 
 
@@ -49,15 +49,35 @@ def detect_peaks(data):
     return peaks, filtered_data
 
 
-# Calculate frequency from detected peaks
-def calculate_frequency(peaks):
-    if len(peaks) >= 2:
-        period = np.mean(np.diff(peaks)) / sampling_rate
+def calculate_frequency(data):
+    # Denoise the signal
+    denoised_data = denoise_signal(data)
+
+    # Detect peaks and valleys to capture both positive and negative cycles
+    peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
+    valleys = (np.diff(np.sign(np.diff(denoised_data))) > 0).nonzero()[0] + 1
+
+    # Combine peaks and valleys for full waveform cycle detection
+    all_extrema = sorted(np.concatenate((peaks, valleys)))
+
+    # Ensure that we're counting complete cycles (i.e., both peaks and valleys)
+    if len(all_extrema) >= 2:
+        # Calculate the period based on the distance between every second extremum
+        full_cycle_periods = np.diff(
+            all_extrema[::2]
+        )  # Every second extremum represents a full cycle
+
+        # Calculate the average period and frequency
+        period = np.mean(full_cycle_periods) / sampling_rate
         frequency = 1 / period
+        print(f"Detected extrema (peaks and valleys): {all_extrema}")
+        print(f"Calculated full cycle period: {period} seconds")
         return frequency
+
     return None
 
 
+#
 # Main loop
 last_frequency = None
 
