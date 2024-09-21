@@ -32,6 +32,7 @@ def detect_waveform_shape(samples, sample_rate):
     if np.max(samples) < 0.7:
         print("returning no voltage")
         return "No Voltage"
+    print("BBBBBB")
 
     filtered_samples = moving_average_filter(samples)
     normalized_samples = (filtered_samples - np.mean(filtered_samples)) / np.std(
