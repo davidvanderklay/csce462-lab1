@@ -5,7 +5,6 @@ import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 import time
 import RPi.GPIO as GPIO
-import numpy as np
 
 # Create the SPI bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
@@ -20,34 +19,34 @@ mcp = MCP.MCP3008(spi, cs)
 chan = AnalogIn(mcp, MCP.P0)
 
 # Threshold for low voltage detection
-LOW_VOLTAGE_THRESHOLD = 0.5
-SAMPLE_RATE = 2000  # Increased samples per second
+LOW_VOLTAGE_THRESHOLD = 0.1
+SAMPLE_RATE = 1000  # Samples per second
 DURATION = 5  # Duration in seconds
 
 
-def moving_average(samples, window_size=5):
-    if len(samples) < window_size:
-        return samples
-    return np.convolve(samples, np.ones(window_size) / window_size, mode="valid")
-
-
-def calculate_frequency(samples, sample_rate):
+def calculate_frequency(samples):
     zero_crossings = 0
     previous_sample = samples[0]
+    last_crossing_time = 0
+    crossing_times = []
 
-    for sample in samples[1:]:
-        if previous_sample < 1.65 and sample >= 1.65:
+    for i, sample in enumerate(samples[1:], start=1):
+        if previous_sample < 1.65 and sample >= 1.65:  # Rising edge detected
             zero_crossings += 1
+            crossing_times.append(i)  # Store index of crossing
         previous_sample = sample
 
-    frequency = (zero_crossings / 2) * (sample_rate / len(samples))
+    # Calculate frequency based on time between crossings
+    if len(crossing_times) < 2:
+        return 0  # Not enough crossings to calculate frequency
+
+    time_intervals = np.diff(crossing_times)  # Time between zero crossings
+    average_period = np.mean(time_intervals) / SAMPLE_RATE  # Convert to seconds
+    frequency = 1 / average_period if average_period > 0 else 0  # Calculate frequency
     return frequency
 
 
 def identify_waveform(samples):
-    if len(samples) < 2:
-        return "Unknown"
-
     peaks = np.where(np.diff(np.sign(np.diff(samples))) < 0)[0] + 1
     troughs = np.where(np.diff(np.sign(np.diff(samples))) > 0)[0] + 1
 
@@ -65,11 +64,10 @@ def identify_waveform(samples):
 
 
 def main():
-    num_samples = SAMPLE_RATE * DURATION
     samples = []
 
     print("Collecting samples...")
-    for _ in range(num_samples):
+    for _ in range(SAMPLE_RATE * DURATION):
         voltage = chan.voltage  # Read the voltage
 
         if voltage < LOW_VOLTAGE_THRESHOLD:
@@ -82,11 +80,8 @@ def main():
         print("No valid waveform detected.")
         return
 
-    # Apply moving average to smooth out noise
-    smoothed_samples = moving_average(samples)
-
-    frequency = calculate_frequency(smoothed_samples, SAMPLE_RATE)
-    waveform_shape = identify_waveform(smoothed_samples)
+    frequency = calculate_frequency(samples)
+    waveform_shape = identify_waveform(samples)
 
     print(f"Detected Waveform: {waveform_shape}")
     print(f"Calculated Frequency: {frequency:.2f} Hz")
