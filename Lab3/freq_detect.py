@@ -39,39 +39,52 @@ def moving_average_filter(samples, window_size=5):
 
 
 def detect_waveform_shape(samples):
-    threshold = 1.65  # Set the threshold similar to the frequency detection logic
+    threshold = 1.65  # Voltage threshold to detect peaks and troughs
 
-    # Initialize counters for peaks and troughs
     num_peaks = 0
     num_troughs = 0
+    peak_slopes = []
 
     previous_sample = samples[0]
+    previous_index = 0  # To track the indices for slope calculation
 
-    # Iterate over the samples to detect peaks and troughs
-    for sample in samples[1:]:
-        # Detect peaks (crossing above the threshold from below)
+    slopes = np.diff(samples)  # Calculate slopes between consecutive samples
+
+    # Iterate through the samples to detect peaks and troughs
+    for i, sample in enumerate(samples[1:], start=1):
         if previous_sample < threshold and sample >= threshold:
+            # Peak detected, increment counter and store slopes around the peak
             num_peaks += 1
-        # Detect troughs (crossing below the threshold from above)
+            if i > 0 and i < len(slopes) - 1:
+                peak_slopes.append((slopes[i - 1], slopes[i]))
         elif previous_sample > threshold and sample <= threshold:
+            # Trough detected, increment counter
             num_troughs += 1
 
         previous_sample = sample
+        previous_index = i
 
-    # Print debug information
+    # Print debug information for peaks and troughs
     print(f"Number of Peaks: {num_peaks}, Number of Troughs: {num_troughs}")
 
-    # Determine waveform shape based on the counts of peaks and troughs
+    # Analyze the slopes around peaks
+    if peak_slopes:
+        avg_abs_peak_slope = np.mean([abs(slope[1]) for slope in peak_slopes])
+        max_peak_slope = np.max([slope[1] for slope in peak_slopes])
+        print(
+            f"Average Absolute Slope at Peaks: {avg_abs_peak_slope:.4f}, Max Slope at Peaks: {max_peak_slope:.4f}"
+        )
+
+    # Determine waveform shape based on peak and slope analysis
     if num_troughs > num_peaks * 1.5:  # Square wave condition
         return "Square Wave"
     elif num_peaks == num_troughs:  # Symmetry suggests sine or triangle wave
-        # Differentiate based on further analysis (e.g., slopes or sample symmetry)
-        # For now, let's assume sine wave detection can be based on equal peaks/troughs
-        return "Sine Wave"
+        if avg_abs_peak_slope < 0.1:  # Sine wave: low slope around peaks
+            return "Sine Wave"
+        else:  # Higher slope might suggest a triangle wave
+            return "Triangle Wave"
     else:
-        return "Triangle Wave"
-
-    return "Unknown Waveform"
+        return "Unknown Waveform"
 
 
 def main():
