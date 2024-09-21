@@ -29,25 +29,32 @@ def moving_average_filter(samples, window_size=5):
 
 
 def detect_waveform_shape(samples, sample_rate):
+    # set at slightly above floating voltage
     if np.max(samples) < 1.02:
         print("returning no voltage")
         return "No Voltage"
 
+    # run a convolution on the raw samples
     filtered_samples = moving_average_filter(samples)
+    # normalize samples to be between certain ranges
     normalized_samples = (filtered_samples - np.mean(filtered_samples)) / np.std(
         filtered_samples
     )
 
+    # run some very cool fft magic
     fft_result = np.fft.fft(normalized_samples)
     positive_fft_result = np.abs(fft_result[: len(fft_result) // 2]) / len(
         normalized_samples
     )
 
+    # find the index at which the fundamental freq is
     fundamental_freq_index = np.argmax(positive_fft_result[1:]) + 1
 
+    # more magic math
     crest_factor = np.max(np.abs(normalized_samples)) / np.sqrt(
         np.mean(normalized_samples**2)
     )
+    # more magic statistics to measure data dispersion
     kurtosis = stats.kurtosis(normalized_samples)
 
     if (
@@ -92,7 +99,7 @@ def main():
             else:
                 frequency = calculate_frequency(samples, actual_sample_rate)
 
-                # Check for significant changes
+                # check for if changes are made that differ greatly
                 if (
                     (shape != last_shape)
                     or (last_frequency is None)
@@ -105,7 +112,7 @@ def main():
 
                     last_shape = shape
                     last_frequency = frequency
-            time.sleep(0.1)  # Short delay to prevent excessive CPU usage
+            time.sleep(0.1)  # delay to prevent excess cpu usage
 
     except KeyboardInterrupt:
         print("\nExiting program.")
