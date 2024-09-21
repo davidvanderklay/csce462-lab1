@@ -66,31 +66,34 @@ def calculate_frequency(data, sampling_rate=500, threshold=0.05):
     return None
 
 
-def detect_waveform_shape(data):
+def detect_waveform_shape(data, low_voltage_threshold=0.1):
     # Denoise the signal
     denoised_data = denoise_signal(data)
 
-    # Calculate the average value to determine if the signal is near zero
-    average_value = np.mean(denoised_data)
+    # Check for low voltage
+    if np.mean(denoised_data) < low_voltage_threshold:
+        return "No Voltage"
 
-    # Identify significant peaks
+    # Detect peaks and valleys
     peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
+    valleys = (np.diff(np.sign(np.diff(denoised_data))) > 0).nonzero()[0] + 1
 
-    # Early exit if not enough peaks
-    if len(peaks) < 2:
-        return "Flat Line"
+    # Analyze the number of peaks and valleys
+    num_peaks = len(peaks)
+    num_valleys = len(valleys)
 
-    # Analyze the first peak and the subsequent values
-    first_peak = peaks[0]
-    rising_edges = np.diff(denoised_data[:first_peak]) > 0
-    falling_edges = np.diff(denoised_data[first_peak:]) < 0
+    if num_peaks < 2 or num_valleys < 2:
+        return "Unknown Waveform (Not enough features)"
 
-    if np.all(rising_edges) and np.all(falling_edges):
+    # Calculate average peak-to-peak distance for determining wave shape
+    peak_intervals = np.diff(peaks)
+    valley_intervals = np.diff(valleys)
+
+    # Determine waveform shape based on peak and valley characteristics
+    if (np.mean(peak_intervals) < 0.1 * samples) and (num_peaks == num_valleys):
         return "Square Wave"
-    elif np.any(rising_edges) and np.any(falling_edges):
+    elif num_peaks > num_valleys:
         return "Triangle Wave"
-    elif average_value < 0.05:  # Adjust threshold as needed for low signals
-        return "Empty Signal"
     else:
         return "Sine Wave"
 
