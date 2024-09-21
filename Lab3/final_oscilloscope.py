@@ -29,6 +29,7 @@ def moving_average_filter(samples, window_size=5):
 
 
 def detect_waveform_shape(samples, sample_rate):
+    print("The max is", np.max(samples))
     if np.max(samples) < 0.7:
         print("returning no voltage")
         return "No Voltage"
