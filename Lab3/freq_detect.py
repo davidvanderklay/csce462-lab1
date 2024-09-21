@@ -66,46 +66,47 @@ def calculate_frequency(data, sampling_rate=500, threshold=0.05):
     return None
 
 
-def detect_waveform_shape(data, low_voltage_threshold=0.1):
-    denoised_data = denoise_signal(data)
+def detect_waveform_shape(data):
+    # Return shape based on characteristics
+    max_val = np.max(data)
+    min_val = np.min(data)
+    amplitude = max_val - min_val
+    if amplitude == 0:
+        return "Unknown Waveform (Flat Line)"
 
-    if np.mean(denoised_data) < low_voltage_threshold:
-        return "No Voltage"
+    # Normalize signal between 0 and 1
+    normalized_data = (data - min_val) / amplitude
 
-    peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
-    valleys = (np.diff(np.sign(np.diff(denoised_data))) > 0).nonzero()[0] + 1
+    # Denoise the signal
+    denoised_data = denoise_signal(normalized_data)
 
-    if len(peaks) < 2 or len(valleys) < 2:
-        return "Unknown Waveform (Not enough features)"
+    # Check for Sine Wave using smoothness
+    first_diff = np.diff(denoised_data)
+    second_diff = np.diff(first_diff)
+    is_smooth = np.all(np.abs(second_diff) < 0.005)  # Tighter threshold for smoothness
 
-    peak_amplitudes = denoised_data[peaks]
-    valley_amplitudes = denoised_data[valleys]
+    # Debugging output
+    print(f"Amplitude: {amplitude}")
+    print(f"Normalized Data Range: {np.min(denoised_data)} to {np.max(denoised_data)}")
+    print(f"Smoothness Check: {is_smooth}")
 
-    # Check for square wave characteristics
-    peak_intervals = np.diff(peaks)
-    valley_intervals = np.diff(valleys)
-    if np.abs(np.mean(peak_intervals) - np.mean(valley_intervals)) < 0.2 * np.mean(
-        peak_intervals
-    ):
+    if is_smooth:
+        return "Sine Wave"
+
+    # Square Wave: Detect flat regions around 0 and 1
+    threshold = 0.85
+    high_vals = denoised_data > threshold
+    low_vals = denoised_data < (1 - threshold)
+    if np.mean(high_vals) > 0.45 and np.mean(low_vals) > 0.45:
         return "Square Wave"
 
-    # Check for triangle wave characteristics
-    if len(peaks) > 1 and len(valleys) > 1:
-        # Calculate slopes between peaks and valleys
-        peak_slopes = np.diff(peak_amplitudes) / peak_intervals
-        valley_slopes = np.diff(valley_amplitudes) / valley_intervals
+    # Triangle Wave: Check if it increases and decreases linearly
+    rising_slope = np.mean(first_diff[: len(first_diff) // 2])
+    falling_slope = np.mean(first_diff[len(first_diff) // 2 :])
+    if np.abs(rising_slope) < 0.2 and np.abs(falling_slope) < 0.2:
+        return "Triangle Wave"
 
-        # Ensure peak_intervals and valley_intervals have matching lengths
-        if len(peak_slopes) > 0 and len(valley_slopes) > 0:
-            # Check for triangular slope characteristics (positive slope for peaks, negative for valleys)
-            if (
-                np.all(peak_slopes > 0)
-                and np.all(valley_slopes < 0)
-                and np.abs(np.mean(peak_slopes)) < 2 * np.abs(np.mean(valley_slopes))
-            ):  # Tolerance
-                return "Triangle Wave"
-
-    return "Sine Wave"
+    return "Unknown Waveform"
 
 
 # Main loop
