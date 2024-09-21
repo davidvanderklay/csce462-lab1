@@ -68,16 +68,16 @@ def detect_waveform_shape(samples):
     # Print summary of peak slopes
     print(f"Number of Peaks: {num_peaks}, Number of Troughs: {num_troughs}")
     if peak_slopes:
-        avg_peak_slope = np.mean([slope[1] for slope in peak_slopes])
+        avg_abs_peak_slope = np.mean([abs(slope[1]) for slope in peak_slopes])
         max_peak_slope = np.max([slope[1] for slope in peak_slopes])
         print(
-            f"Average Slope at Peaks: {avg_peak_slope:.4f}, Max Slope at Peaks: {max_peak_slope:.4f}"
+            f"Average Absolute Slope at Peaks: {avg_abs_peak_slope:.4f}, Max Slope at Peaks: {max_peak_slope:.4f}"
         )
 
     # Determine waveform shape based on slope characteristics
     if (
-        num_peaks > num_troughs and avg_peak_slope < -0.1
-    ):  # More peaks than troughs and significant slope
+        num_peaks > num_troughs and avg_abs_peak_slope > 0.1
+    ):  # More peaks than troughs with significant slope
         return "Triangle Wave"
     elif num_peaks / num_troughs > 2 and max_peak_slope > 0.3:  # Square wave condition
         return "Square Wave"
