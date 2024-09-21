@@ -82,28 +82,29 @@ def main():
     num_samples = sample_rate * duration
     samples = []
 
-    print("Collecting samples...")
-    start_time = time.time()
-    for _ in range(num_samples):
-        voltage = chan.voltage
-        samples.append(voltage)
-
-    actual_sample_rate = num_samples / (time.time() - start_time)
-    print(f"Actual sample rate: {actual_sample_rate:.2f} Hz")
-
-    samples = np.array(samples)
-    frequency = calculate_frequency(samples, actual_sample_rate)
-    shape = detect_waveform_shape(samples, actual_sample_rate)
-
-    print(f"Calculated Frequency: {frequency:.2f} Hz")
-    print(f"Detected Waveform Shape: {shape}")
-
-
-if __name__ == "__main__":
     try:
-        main()
+        while True:
+            samples.clear()  # Clear previous samples
+
+            print("Collecting samples...")
+            start_time = time.time()
+            for _ in range(num_samples):
+                voltage = chan.voltage
+                samples.append(voltage)
+
+            actual_sample_rate = num_samples / (time.time() - start_time)
+            print(f"Actual sample rate: {actual_sample_rate:.2f} Hz")
+
+            samples = np.array(samples)
+            frequency = calculate_frequency(samples, actual_sample_rate)
+            shape = detect_waveform_shape(samples, actual_sample_rate)
+
+            print(f"Calculated Frequency: {frequency:.2f} Hz")
+            print(f"Detected Waveform Shape: {shape}")
+
+            time.sleep(0.5)  # Optional delay before the next reading
+
     except KeyboardInterrupt:
         print("\nExiting program.")
     finally:
         GPIO.cleanup()
-
