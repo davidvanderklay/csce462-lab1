@@ -1,55 +1,12 @@
-import os
-import time
-import busio
-import digitalio
-import board
-import adafruit_mcp3xxx.mcp3008 as MCP
-from adafruit_mcp3xxx.analog_in import AnalogIn
 import numpy as np
-from scipy.signal import butter, filtfilt, find_peaks
-
-# spi, adc setup
-spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
-cs = digitalio.DigitalInOut(board.D5)
-mcp = MCP.MCP3008(spi, cs)
-chan0 = AnalogIn(mcp, MCP.P0)
-
-# parameters for detecting wave
-sampling_rate = 1000  # Hz
-samples = 1000  # Increased number of samples to stabilize readings
-threshold = 0.2  # Threshold for signal variation
 
 
-# Butterworth low-pass filter to remove high-frequency noise
-def butter_lowpass_filter(data, cutoff=100, fs=sampling_rate, order=4):
-    nyquist = 0.5 * fs
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype="low", analog=False)
-    y = filtfilt(b, a, data)
-    return y
+# Denoising using a moving average
+def denoise_signal(signal, window_size=50):
+    return np.convolve(signal, np.ones(window_size) / window_size, mode="same")
 
 
-# Sample the waveform data
-def sample_waveform():
-    data = []
-    for _ in range(samples):
-        data.append(chan0.voltage)
-        time.sleep(1 / sampling_rate)
-    return np.array(data)
-
-
-# Enhanced peak detection
-def detect_peaks(data):
-    # Apply stronger filtering
-    filtered_data = butter_lowpass_filter(data)
-
-    # Detect peaks with a minimum prominence to filter noise
-    peaks, _ = find_peaks(filtered_data, prominence=0.05)  # Adjust prominence as needed
-
-    return peaks, filtered_data
-
-
-def calculate_frequency(data):
+def calculate_frequency(data, sampling_rate=1000):
     # Denoise the signal
     denoised_data = denoise_signal(data)
 
@@ -77,26 +34,21 @@ def calculate_frequency(data):
     return None
 
 
-#
-# Main loop
-last_frequency = None
+# Example data sampling simulation (replace with real ADC data in actual use case)
+def sample_waveform():
+    # Simulating a sample waveform, replace this with actual MCP3008 sampling logic
+    time = np.linspace(0, 1, 1000)
+    frequency = 50  # 50 Hz signal
+    amplitude = 3.3
+    data = amplitude * np.sin(2 * np.pi * frequency * time)  # Example sine wave
+    return data
 
-while True:
-    # Get the waveform data
-    data = sample_waveform()
 
-    # Detect peaks and apply filtering
-    peaks, filtered_data = detect_peaks(data)
+# Testing with example data
+sampling_rate = 1000  # Adjust to match your actual sampling rate
+data = sample_waveform()
 
-    # Calculate and print frequency if stable
-    frequency = calculate_frequency(peaks)
-
-    if frequency:
-        # Only print when the frequency changes significantly (optional threshold for "major changes")
-        if last_frequency is None or abs(frequency - last_frequency) > 1:
-            print(f"Frequency: {frequency:.2f} Hz")
-            print(f"Peaks for frequency calculation: {peaks}")
-            last_frequency = frequency
-
-    # Small pause to save CPU
-    time.sleep(0.5)
+# Calculate frequency
+frequency = calculate_frequency(data, sampling_rate)
+if frequency:
+    print(f"Detected frequency: {frequency:.2f} Hz")
