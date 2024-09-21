@@ -66,7 +66,11 @@ def calculate_frequency(data, sampling_rate=500, threshold=0.05):
     return None
 
 
-def detect_waveform_shape(data):
+def detect_waveform_shape(data, low_voltage_threshold=0.1):
+    # Check for low voltage
+    if np.mean(data) < low_voltage_threshold:
+        return "No Voltage"
+
     # Return shape based on characteristics
     max_val = np.max(data)
     min_val = np.min(data)
@@ -103,7 +107,7 @@ def detect_waveform_shape(data):
     # Triangle Wave: Check if it increases and decreases linearly
     rising_slope = np.mean(first_diff[: len(first_diff) // 2])
     falling_slope = np.mean(first_diff[len(first_diff) // 2 :])
-    if np.abs(rising_slope) < 0.2 and np.abs(falling_slope) < 0.2:
+    if np.abs(rising_slope) < 0.1 and np.abs(falling_slope) < 0.1:  # Adjusted tolerance
         return "Triangle Wave"
 
     return "Unknown Waveform"
