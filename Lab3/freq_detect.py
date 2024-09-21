@@ -40,36 +40,37 @@ def moving_average_filter(samples, window_size=5):
 
 def detect_waveform_shape_fft(samples, sample_rate):
     # Apply the moving average filter to denoise the signal
+    print(f"Sample Rate: {sample_rate} Hz")
     filtered_samples = moving_average_filter(samples)
+
+    # Check length of filtered samples
+    if len(filtered_samples) < 8:  # Ensure there's enough data for FFT
+        return "Insufficient Data"
 
     # Perform FFT on the filtered signal
     fft_result = np.fft.fft(filtered_samples)
     fft_freq = np.fft.fftfreq(len(filtered_samples), 1 / sample_rate)
 
-    # Consider only the positive frequencies (ignore negative part of FFT)
+    # Take only the positive frequencies
     positive_freqs = fft_freq[: len(fft_freq) // 2]
-    positive_fft_result = np.abs(fft_result[: len(fft_result) // 2])
+    positive_fft_result = np.abs(fft_result[: len(fft_result) // 2]) / len(
+        filtered_samples
+    )  # Normalize
 
-    # Find the fundamental frequency (the highest peak in the FFT)
+    # Find the fundamental frequency
     fundamental_freq_index = np.argmax(positive_fft_result)
     fundamental_freq = positive_freqs[fundamental_freq_index]
 
     print(f"Fundamental Frequency: {fundamental_freq:.2f} Hz")
+    print(f"Harmonic Strengths: {positive_fft_result[:5]}")  # First 5 harmonics
 
-    # Analyze harmonic content to classify waveform
+    # Classify based on harmonic content
     harmonic_peaks = positive_fft_result[fundamental_freq_index::2]  # Odd harmonics
-    harmonic_strengths = harmonic_peaks[:5]  # Look at first 5 harmonics
-
-    print(f"Harmonic Strengths: {harmonic_strengths}")
-
-    # Classification based on harmonic content
-    if np.all(harmonic_strengths < 0.1 * positive_fft_result[fundamental_freq_index]):
+    if np.all(harmonic_peaks < 0.1 * positive_fft_result[fundamental_freq_index]):
         return "Sine Wave"
-    elif np.any(harmonic_strengths > 0.1 * positive_fft_result[fundamental_freq_index]):
+    elif np.any(harmonic_peaks > 0.1 * positive_fft_result[fundamental_freq_index]):
         return (
-            "Square Wave"
-            if harmonic_strengths[1] > harmonic_strengths[2]
-            else "Triangle Wave"
+            "Square Wave" if harmonic_peaks[1] > harmonic_peaks[2] else "Triangle Wave"
         )
 
     return "Unknown Waveform"
