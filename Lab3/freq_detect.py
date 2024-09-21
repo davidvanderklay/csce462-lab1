@@ -61,8 +61,6 @@ def calculate_frequency(data, sampling_rate=500, threshold=0.05):
         # Calculate the average period and frequency
         period = np.mean(full_cycle_periods) / sampling_rate
         frequency = 1 / period
-        print(f"Detected significant extrema (peaks and valleys): {all_extrema}")
-        print(f"Calculated full cycle period: {period:.5f} seconds")
         return frequency
 
     return None
@@ -72,29 +70,27 @@ def detect_waveform_shape(data):
     # Denoise the signal
     denoised_data = denoise_signal(data)
 
-    # Peak detection
+    # Calculate the average value to determine if the signal is near zero
+    average_value = np.mean(denoised_data)
+
+    # Identify significant peaks
     peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
 
+    # Early exit if not enough peaks
     if len(peaks) < 2:
-        return "Unknown Waveform (Not enough peaks)"
+        return "Flat Line"
 
-    # Analyze slopes
-    rising_slope = np.mean(
-        np.diff(denoised_data[: peaks[0]])
-    )  # Slope before first peak
-    falling_slope = np.mean(
-        np.diff(denoised_data[peaks[0] :])
-    )  # Slope after first peak
+    # Analyze the first peak and the subsequent values
+    first_peak = peaks[0]
+    rising_edges = np.diff(denoised_data[:first_peak]) > 0
+    falling_edges = np.diff(denoised_data[first_peak:]) < 0
 
-    print(f"Peaks detected at indices: {peaks}")
-    print(f"Rising slope: {rising_slope}")
-    print(f"Falling slope: {falling_slope}")
-
-    # Detect waveform type based on slopes
-    if np.abs(rising_slope) < 0.2 and np.abs(falling_slope) < 0.2:
-        return "Triangle Wave"
-    elif np.abs(rising_slope) > 0.5 and np.abs(falling_slope) > 0.5:
+    if np.all(rising_edges) and np.all(falling_edges):
         return "Square Wave"
+    elif np.any(rising_edges) and np.any(falling_edges):
+        return "Triangle Wave"
+    elif average_value < 0.05:  # Adjust threshold as needed for low signals
+        return "Empty Signal"
     else:
         return "Sine Wave"
 
@@ -112,10 +108,8 @@ while True:
     # Detect waveform shape
     waveform = detect_waveform_shape(data)
 
-    # Print only if waveform changes
-    if waveform != last_waveform:
-        print(f"Detected waveform: {waveform}")
-        last_waveform = waveform
+    # Print only frequency and shape detected
+    print(f"Detected waveform: {waveform}")
 
     # Small pause to save CPU
     time.sleep(0.5)
