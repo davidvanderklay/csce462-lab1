@@ -42,8 +42,11 @@ def detect_waveform_shape(samples):
     # Calculate the first derivative (slope) to analyze behavior around peaks
     slopes = np.diff(normalized_samples)
 
-    # Print the slopes for debugging
-    print(f"Slopes: {slopes}")
+    # Print basic statistics for slopes
+    print(f"Total Number of Slopes: {len(slopes)}")
+    print(
+        f"Max Slope: {np.max(slopes):.4f}, Min Slope: {np.min(slopes):.4f}, Average Slope: {np.mean(slopes):.4f}"
+    )
 
     # Check for zero crossings to find peaks and their characteristics
     peak_indices = np.where((slopes[:-1] > 0) & (slopes[1:] < 0))[0] + 1  # Peaks
@@ -56,14 +59,17 @@ def detect_waveform_shape(samples):
     if num_peaks == 0 and num_troughs == 0:
         return "No Voltage"
 
-    # Calculate average slope before and after peaks
+    # Calculate slopes at peaks
     peak_slopes = []
     for index in peak_indices:
         if index > 0 and index < len(slopes) - 1:
             peak_slopes.append((slopes[index - 1], slopes[index]))
 
-    # Print peak slopes for debugging
-    print(f"Peak Slopes: {peak_slopes}")
+    # Print summary of peak slopes
+    print(f"Number of Peaks: {num_peaks}, Number of Troughs: {num_troughs}")
+    if peak_slopes:
+        avg_peak_slope = np.mean([slope[1] for slope in peak_slopes])
+        print(f"Average Slope at Peaks: {avg_peak_slope:.4f}")
 
     # Determine waveform shape based on slope characteristics
     square_wave_detected = any(
