@@ -62,7 +62,7 @@ def detect_waveform_shape(samples):
 
     # Classification based on the left slope
     if left_slope is not None:
-        if abs(left_slope) < 0.24:  # Less than 0.24 -> Triangle wave
+        if abs(left_slope) < 0.15:  # Less than 0.24 -> Triangle wave
             return "Triangle Wave"
         else:  # Greater than or equal to 0.24 -> Sine wave
             return "Sine Wave"
