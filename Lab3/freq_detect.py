@@ -33,14 +33,22 @@ def calculate_frequency(samples, sample_rate):
     return frequency
 
 
+def moving_average_filter(samples, window_size=5):
+    """Applies a moving average filter to smooth the signal."""
+    return np.convolve(samples, np.ones(window_size) / window_size, mode="same")
+
+
 def detect_waveform_shape(samples):
     # Normalize samples to range [0, 1]
     normalized_samples = (samples - np.min(samples)) / (
         np.max(samples) - np.min(samples)
     )
 
+    # Apply the moving average filter to denoise the signal
+    filtered_samples = moving_average_filter(normalized_samples)
+
     # Calculate the first derivative (slope) to analyze behavior around peaks
-    slopes = np.diff(normalized_samples)
+    slopes = np.diff(filtered_samples)
 
     # Print basic statistics for slopes
     print(f"Total Number of Slopes: {len(slopes)}")
