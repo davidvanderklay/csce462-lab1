@@ -60,13 +60,12 @@ def detect_waveform_shape(samples):
     print(f"Peak Value: {peak_value}, Peak Index: {peak_index}")
     print(f"Left Slope: {left_slope:.4f} (over {num_points_for_slope} points)")
 
-    # Decision based on slope and peak value
+    # Classification based on the left slope
     if left_slope is not None:
-        # Determine if it's a sine or triangle wave based on the steepness of the slope
-        if abs(left_slope) < 0.05:  # Low slope suggests a sine wave
-            return "Sine Wave"
-        elif abs(left_slope) >= 0.05:  # Higher slope suggests a triangle wave
+        if abs(left_slope) < 0.24:  # Less than 0.24 -> Triangle wave
             return "Triangle Wave"
+        else:  # Greater than or equal to 0.24 -> Sine wave
+            return "Sine Wave"
 
     return "Unknown Waveform"
 
