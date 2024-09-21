@@ -39,40 +39,38 @@ def detect_waveform_shape(samples):
         np.max(samples) - np.min(samples)
     )
 
-    # Count peaks and troughs using a simple threshold
-    threshold = 0.5
-    peaks = (normalized_samples[:-1] < threshold) & (
-        normalized_samples[1:] >= threshold
-    )
-    troughs = (normalized_samples[:-1] >= threshold) & (
-        normalized_samples[1:] < threshold
-    )
+    # Calculate the first derivative (slope) to analyze behavior around peaks
+    slopes = np.diff(normalized_samples)
 
-    num_peaks = np.sum(peaks)
-    num_troughs = np.sum(troughs)
-    std_dev = np.std(normalized_samples)
+    # Check for zero crossings to find peaks and their characteristics
+    peak_indices = np.where((slopes[:-1] > 0) & (slopes[1:] < 0))[0] + 1  # Peaks
+    trough_indices = np.where((slopes[:-1] < 0) & (slopes[1:] > 0))[0] + 1  # Troughs
 
-    # Print debug information
-    print(f"Normalized Samples: {normalized_samples}")
-    print(f"Number of Peaks: {num_peaks}")
-    print(f"Number of Troughs: {num_troughs}")
-    print(f"Standard Deviation: {std_dev:.4f}")
+    num_peaks = len(peak_indices)
+    num_troughs = len(trough_indices)
 
-    # Analyze waveform shape
+    # Analyze peak characteristics
     if num_peaks == 0 and num_troughs == 0:
         return "No Voltage"
 
-    # Adjusting criteria for better classification
-    peak_to_trough_ratio = num_peaks / num_troughs if num_troughs > 0 else float("inf")
+    # Calculate average slope before and after peaks
+    peak_slopes = []
+    for index in peak_indices:
+        if index > 0 and index < len(slopes) - 1:
+            peak_slopes.append((slopes[index - 1], slopes[index]))
 
-    if std_dev < 0.1 and num_peaks > 5:  # Low variance and significant peaks
+    # Determine waveform shape based on slope characteristics
+    square_wave_detected = any(
+        slope[0] > 0.1 and slope[1] < -0.1 for slope in peak_slopes
+    )
+    if square_wave_detected:
         return "Square Wave"
-    elif (
-        num_peaks > 10 and peak_to_trough_ratio > 1.5
-    ):  # More peaks than troughs indicates a triangle
+
+    # Triangle wave characteristics
+    if num_peaks > num_troughs:
         return "Triangle Wave"
-    else:
-        return "Sine Wave"
+
+    return "Sine Wave"
 
 
 def main():
