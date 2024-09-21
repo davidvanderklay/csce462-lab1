@@ -29,7 +29,7 @@ def moving_average_filter(samples, window_size=5):
 
 
 def detect_waveform_shape(samples, sample_rate):
-    if np.max(samples) < 0.5:
+    if np.max(samples) < 0.1:
         return "No Voltage"
 
     filtered_samples = moving_average_filter(samples)
@@ -83,7 +83,13 @@ def main():
 
             shape = detect_waveform_shape(samples, actual_sample_rate)
 
-            if shape != "No Voltage":
+            if shape == "No Voltage":
+                if shape != last_shape:
+                    print("No Voltage detected")
+                    print("---")
+                    last_shape = shape
+                    last_frequency = None
+            else:
                 frequency = calculate_frequency(samples, actual_sample_rate)
 
                 # Check for significant changes
@@ -100,20 +106,9 @@ def main():
                     last_shape = shape
                     last_frequency = frequency
 
-            elif shape != last_shape:
-                print("No Voltage detected")
-                print("---")
-                last_shape = shape
-                last_frequency = None
-
             time.sleep(0.1)  # Short delay to prevent excessive CPU usage
 
     except KeyboardInterrupt:
         print("\nExiting program.")
     finally:
         GPIO.cleanup()
-
-
-if __name__ == "__main__":
-    main()
-
