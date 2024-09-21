@@ -24,18 +24,18 @@ def calculate_frequency(data, sampling_rate=500):
     # Denoise the signal
     denoised_data = denoise_signal(data)
 
-    # Detect peaks
-    peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
+    # Detect zero-crossings for more accurate frequency measurement
+    zero_crossings = np.where(np.diff(np.sign(denoised_data)))[0]
 
-    if len(peaks) < 2:
-        return None  # Not enough peaks to calculate frequency
+    if len(zero_crossings) < 2:
+        return None  # Not enough zero crossings to calculate frequency
 
-    # Calculate the periods between peaks
-    peak_intervals = np.diff(peaks)
+    # Calculate the periods between zero crossings
+    crossing_intervals = np.diff(zero_crossings)
 
     # Calculate the average period
-    if len(peak_intervals) > 0:
-        average_period = np.mean(peak_intervals) / sampling_rate
+    if len(crossing_intervals) > 0:
+        average_period = np.mean(crossing_intervals) / sampling_rate
         frequency = 1 / average_period
         return frequency
 
