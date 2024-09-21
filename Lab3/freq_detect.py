@@ -15,7 +15,7 @@ chan0 = AnalogIn(mcp, MCP.P0)
 
 # Parameters for detecting wave
 sampling_rate = 500  # Hz
-samples = 2000  # Number of samples to analyze
+samples = 1000  # Number of samples to analyze
 threshold = 0.2  # Threshold for signal variation
 
 
@@ -67,43 +67,38 @@ def calculate_frequency(data, sampling_rate=500, threshold=0.05):
 
 
 def detect_waveform_shape(data, low_voltage_threshold=0.1):
-    # Denoise the signal
     denoised_data = denoise_signal(data)
 
-    # Check for low voltage
     if np.mean(denoised_data) < low_voltage_threshold:
         return "No Voltage"
 
-    # Detect peaks and valleys
     peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
     valleys = (np.diff(np.sign(np.diff(denoised_data))) > 0).nonzero()[0] + 1
 
-    # Ensure there are enough peaks and valleys to analyze
     if len(peaks) < 2 or len(valleys) < 2:
         return "Unknown Waveform (Not enough features)"
 
-    # Calculate intervals
     peak_intervals = np.diff(peaks)
     valley_intervals = np.diff(valleys)
 
-    # Analyze the ratios of intervals
-    if len(peak_intervals) > 1 and len(valley_intervals) > 1:
-        avg_peak_interval = np.mean(peak_intervals)
-        avg_valley_interval = np.mean(valley_intervals)
+    # Check for square wave characteristics
+    if np.abs(np.mean(peak_intervals) - np.mean(valley_intervals)) < 0.2 * np.mean(
+        peak_intervals
+    ):
+        return "Square Wave"
 
-        # Check for square wave characteristics
-        if np.abs(avg_peak_interval - avg_valley_interval) < 0.2 * avg_peak_interval:
-            return "Square Wave"
+    # Check for triangle wave characteristics
+    peak_amplitudes = denoised_data[peaks]
+    valley_amplitudes = denoised_data[valleys]
 
-    # If square wave isn't detected, check for triangle wave
-    if len(peaks) > 1 and len(valleys) > 1:
-        peak_amplitudes = denoised_data[peaks]
-        valley_amplitudes = denoised_data[valleys]
-
-        if np.all(np.diff(peak_amplitudes) > 0) and np.all(
-            np.diff(valley_amplitudes) < 0
-        ):
-            return "Triangle Wave"
+    # Check for triangular characteristics (linear rise and fall)
+    if (
+        np.all(np.diff(peak_amplitudes) > 0)
+        and np.all(np.diff(valley_amplitudes) < 0)
+        and np.all(np.diff(peaks) > 1)
+        and np.all(np.diff(valleys) > 1)
+    ):
+        return "Triangle Wave"
 
     return "Sine Wave"
 
