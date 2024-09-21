@@ -78,21 +78,22 @@ def detect_waveform_shape(data, low_voltage_threshold=0.1):
     peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
     valleys = (np.diff(np.sign(np.diff(denoised_data))) > 0).nonzero()[0] + 1
 
-    # Analyze the number of peaks and valleys
-    num_peaks = len(peaks)
-    num_valleys = len(valleys)
-
-    if num_peaks < 2 or num_valleys < 2:
+    # Ensure there are enough peaks and valleys to analyze
+    if len(peaks) < 2 or len(valleys) < 2:
         return "Unknown Waveform (Not enough features)"
 
-    # Calculate average peak-to-peak distance for determining wave shape
+    # Analyze peak and valley distances
     peak_intervals = np.diff(peaks)
     valley_intervals = np.diff(valleys)
 
-    # Determine waveform shape based on peak and valley characteristics
-    if (np.mean(peak_intervals) < 0.1 * samples) and (num_peaks == num_valleys):
+    # Calculate average intervals
+    avg_peak_interval = np.mean(peak_intervals)
+    avg_valley_interval = np.mean(valley_intervals)
+
+    # Define criteria for shape detection
+    if np.abs(avg_peak_interval - avg_valley_interval) < 0.2 * avg_peak_interval:
         return "Square Wave"
-    elif num_peaks > num_valleys:
+    elif avg_peak_interval < avg_valley_interval:
         return "Triangle Wave"
     else:
         return "Sine Wave"
