@@ -6,17 +6,17 @@ import board
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 import numpy as np
+from scipy.signal import find_peaks
 
-# SPI and ADC setup
+# spi, adc setup
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 cs = digitalio.DigitalInOut(board.D5)
 mcp = MCP.MCP3008(spi, cs)
 chan0 = AnalogIn(mcp, MCP.P0)
 
-# Parameters
-sampling_rate = 1000  # Hz
-samples = 500  # Number of samples to analyze
-empty_waveform_threshold = 0.05  # Voltage threshold to detect empty signal
+# parameters for detecting wave
+sampling_rate = 500  # Hz (adjusted for signals < 100Hz)
+samples = 1000  # Increased number of samples for better detection
 
 
 # Denoising using a moving average
@@ -24,7 +24,6 @@ def denoise_signal(signal, window_size=50):
     return np.convolve(signal, np.ones(window_size) / window_size, mode="same")
 
 
-# Sampling the ADC
 def sample_waveform():
     data = []
     for _ in range(samples):
@@ -33,37 +32,26 @@ def sample_waveform():
     return np.array(data)
 
 
-# Empty waveform detection
-def is_empty_waveform(data):
-    # Check if all values are below a certain low voltage threshold
-    return np.max(data) < empty_waveform_threshold
-
-
-# Calculate frequency by finding valid peaks
 def calculate_frequency(data):
+    # Apply denoising
     denoised_data = denoise_signal(data)
 
-    # Peak detection with threshold to filter noise
-    peaks = (np.diff(np.sign(np.diff(denoised_data))) < 0).nonzero()[0] + 1
-
-    # Filter out peaks that are too close to each other
-    min_peak_distance = int(
-        sampling_rate / 100
-    )  # Ignore peaks closer than 10ms (for 100 Hz or lower)
-    valid_peaks = [peaks[0]]  # Start with the first peak
-
-    for i in range(1, len(peaks)):
-        if peaks[i] - valid_peaks[-1] >= min_peak_distance:
-            valid_peaks.append(peaks[i])
-
-    if len(valid_peaks) >= 2:
-        period = np.mean(np.diff(valid_peaks)) / sampling_rate
-        frequency = 1 / period
-        print(f"Valid peaks for frequency calculation: {valid_peaks}")
-        print(f"Calculated period: {period}")
+    # Peak detection with prominence to avoid small fluctuations
+    peaks, properties = find_peaks(denoised_data, prominence=0.05)
+    if len(peaks) >= 2:
+        periods = np.diff(peaks) / sampling_rate
+        frequency = 1 / np.mean(periods)
+        print(f"Peaks for frequency calculation: {peaks}")
+        print(f"Calculated period: {np.mean(periods)} seconds")
         return frequency
-    else:
-        return None
+    return None
+
+
+# Detect empty waveform based on low voltage
+def detect_empty_waveform(data):
+    if np.max(data) < 0.05:  # Low threshold for detecting empty waveform
+        return True
+    return False
 
 
 # Main loop
@@ -72,16 +60,14 @@ while True:
     data = sample_waveform()
 
     # Detect empty waveform
-    if is_empty_waveform(data):
+    if detect_empty_waveform(data):
         print("Detected empty waveform (low voltage)")
-        last_frequency = None
+        time.sleep(0.5)
         continue
 
-    # Calculate and print frequency
+    # Calculate and print frequency only if there's a major change
     frequency = calculate_frequency(data)
-    if frequency and (
-        last_frequency is None or abs(frequency - last_frequency) > 1
-    ):  # Print only for significant changes
+    if frequency and (last_frequency is None or abs(frequency - last_frequency) > 5):
         print(f"Frequency: {frequency:.2f} Hz")
         last_frequency = frequency
 
