@@ -40,7 +40,7 @@ def moving_average_filter(samples, window_size=5):
 
 def detect_waveform_shape(samples):
     # Apply the moving average filter to denoise the signal
-    filtered_samples = moving_average_filter(samples)
+    filtered_samples = samples
 
     # Find the peak: maximum value in the filtered samples
     peak_index = np.argmax(filtered_samples)
