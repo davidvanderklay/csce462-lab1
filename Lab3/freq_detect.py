@@ -96,7 +96,7 @@ def detect_waveform_shape(samples):
 
 
 def main():
-    sample_rate = 1000  # Samples per second
+    sample_rate = 2000  # Samples per second
     duration = 5  # Duration in seconds
     num_samples = sample_rate * duration
 
