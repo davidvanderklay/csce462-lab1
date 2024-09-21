@@ -47,11 +47,11 @@ def detect_waveform_shape(samples):
     peak_value = filtered_samples[peak_index]
 
     # Analyze slopes before the peak
-    num_points_for_slope = 5  # Number of points to calculate slope over
+    num_points_for_slope = 2  # Number of points to calculate slope over
     left_slope = None
 
     if peak_index > num_points_for_slope:
-        # Calculate the slope to the left of the peak
+        # Calculate the slope to the left of the peak using 2 points
         left_slope = (
             filtered_samples[peak_index]
             - filtered_samples[peak_index - num_points_for_slope]
