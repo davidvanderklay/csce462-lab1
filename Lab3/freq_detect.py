@@ -23,7 +23,7 @@ def calculate_frequency(data, sampling_rate=500):
     """Calculate the frequency of the signal from the sampled data."""
     # Denoise the signal
     # denoised_data = denoise_signal(data)
-    denoise_data = data
+    denoised_data = data
 
     # Detect zero-crossings for more accurate frequency measurement
     zero_crossings = np.where(np.diff(np.sign(denoised_data)))[0]
