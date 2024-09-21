@@ -72,15 +72,14 @@ def detect_waveform_shape(samples):
         print(f"Average Slope at Peaks: {avg_peak_slope:.4f}")
 
     # Determine waveform shape based on slope characteristics
-    square_wave_detected = any(
-        slope[0] > 0.1 and slope[1] < -0.1 for slope in peak_slopes
-    )
-    if square_wave_detected:
-        return "Square Wave"
+    if num_peaks > 10 and num_troughs > 0:
+        # Check for square wave characteristics
+        if avg_peak_slope < -0.1 and num_peaks / num_troughs > 2:
+            return "Square Wave"
 
-    # Triangle wave characteristics
-    if num_peaks > num_troughs:
-        return "Triangle Wave"
+        # More peaks than troughs suggests a triangle wave
+        if num_peaks > num_troughs:
+            return "Triangle Wave"
 
     return "Sine Wave"
 
