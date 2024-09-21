@@ -39,56 +39,37 @@ def moving_average_filter(samples, window_size=5):
 
 
 def detect_waveform_shape(samples):
-    # Normalize samples to range [0, 1]
-    normalized_samples = (samples - np.min(samples)) / (
-        np.max(samples) - np.min(samples)
-    )
+    threshold = 1.65  # Set the threshold similar to the frequency detection logic
 
-    # Apply the moving average filter to denoise the signal
-    filtered_samples = moving_average_filter(normalized_samples)
+    # Initialize counters for peaks and troughs
+    num_peaks = 0
+    num_troughs = 0
 
-    # Calculate the first derivative (slope) to analyze behavior around peaks
-    slopes = np.diff(filtered_samples)
+    previous_sample = samples[0]
 
-    # Print basic statistics for slopes
-    print(f"Total Number of Slopes: {len(slopes)}")
-    print(
-        f"Max Slope: {np.max(slopes):.4f}, Min Slope: {np.min(slopes):.4f}, Average Slope: {np.mean(slopes):.4f}"
-    )
+    # Iterate over the samples to detect peaks and troughs
+    for sample in samples[1:]:
+        # Detect peaks (crossing above the threshold from below)
+        if previous_sample < threshold and sample >= threshold:
+            num_peaks += 1
+        # Detect troughs (crossing below the threshold from above)
+        elif previous_sample > threshold and sample <= threshold:
+            num_troughs += 1
 
-    # Check for zero crossings to find peaks and their characteristics
-    peak_indices = np.where((slopes[:-1] > 0) & (slopes[1:] < 0))[0] + 1  # Peaks
-    trough_indices = np.where((slopes[:-1] < 0) & (slopes[1:] > 0))[0] + 1  # Troughs
+        previous_sample = sample
 
-    num_peaks = len(peak_indices)
-    num_troughs = len(trough_indices)
-
-    # Analyze peak characteristics
-    if num_peaks == 0 and num_troughs == 0:
-        return "No Voltage"
-
-    # Calculate slopes at peaks
-    peak_slopes = []
-    for index in peak_indices:
-        if index > 0 and index < len(slopes) - 1:
-            peak_slopes.append((slopes[index - 1], slopes[index]))
-
-    # Print summary of peak slopes
+    # Print debug information
     print(f"Number of Peaks: {num_peaks}, Number of Troughs: {num_troughs}")
-    if peak_slopes:
-        avg_abs_peak_slope = np.mean([abs(slope[1]) for slope in peak_slopes])
-        max_peak_slope = np.max([slope[1] for slope in peak_slopes])
-        print(
-            f"Average Absolute Slope at Peaks: {avg_abs_peak_slope:.4f}, Max Slope at Peaks: {max_peak_slope:.4f}"
-        )
 
-    # Determine waveform shape based on updated conditions
-    if num_troughs > num_peaks * 1.5:  # Square wave: 50% more troughs than peaks
+    # Determine waveform shape based on the counts of peaks and troughs
+    if num_troughs > num_peaks * 1.5:  # Square wave condition
         return "Square Wave"
-    elif avg_abs_peak_slope > 0.1:  # More peaks than troughs with significant slope
-        return "Triangle Wave"
-    elif max_peak_slope < 0.1:  # Low slope indicates a smoother waveform
+    elif num_peaks == num_troughs:  # Symmetry suggests sine or triangle wave
+        # Differentiate based on further analysis (e.g., slopes or sample symmetry)
+        # For now, let's assume sine wave detection can be based on equal peaks/troughs
         return "Sine Wave"
+    else:
+        return "Triangle Wave"
 
     return "Unknown Waveform"
 
