@@ -86,7 +86,7 @@ def detect_waveform_shape(data, low_voltage_threshold=0.1):
 
     # Check for Sine Wave using smoothness
     first_diff = np.diff(denoised_data)
-    is_smooth = np.std(first_diff) < 0.02  # Tighter threshold for smoothness
+    is_smooth = np.std(first_diff) < 0.01  # Tighter threshold for smoothness
 
     # Debugging output
     print(f"Amplitude: {amplitude}")
