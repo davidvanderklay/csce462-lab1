@@ -1,5 +1,17 @@
-import numpy as np
+import os
 import time
+import busio
+import digitalio
+import board
+import adafruit_mcp3xxx.mcp3008 as MCP
+from adafruit_mcp3xxx.analog_in import AnalogIn
+import numpy as np
+
+# SPI and MCP3008 setup
+spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+cs = digitalio.DigitalInOut(board.D5)  # Chip select pin
+mcp = MCP.MCP3008(spi, cs)
+chan = AnalogIn(mcp, MCP.P0)  # Using channel 0
 
 
 def denoise_signal(signal, window_size=20):
@@ -34,12 +46,11 @@ def sample_waveform(chan, samples=1000, sampling_rate=500):
     """Sample the waveform from the ADC."""
     data = []
     for _ in range(samples):
-        data.append(chan.voltage)  # Replace with correct ADC read method
-        time.sleep(1 / sampling_rate)
+        data.append(chan.voltage)  # Read voltage from the ADC channel
+        time.sleep(1 / sampling_rate)  # Wait for the sampling period
     return np.array(data)
 
 
-# Main function to run frequency detection
 def detect_frequency(chan, samples=1000, sampling_rate=500):
     data = sample_waveform(chan, samples, sampling_rate)
     frequency = calculate_frequency(data, sampling_rate)
@@ -50,6 +61,5 @@ def detect_frequency(chan, samples=1000, sampling_rate=500):
         print("Frequency could not be determined.")
 
 
-# Example usage:
-# Assuming `chan` is your AnalogIn channel for the MCP3008
-# detect_frequency(chan)
+# Run the frequency detection
+detect_frequency(chan)
