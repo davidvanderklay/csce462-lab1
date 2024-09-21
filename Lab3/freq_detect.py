@@ -5,6 +5,7 @@ import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 import time
 import RPi.GPIO as GPIO
+import numpy as np
 
 # Create the SPI bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
@@ -32,6 +33,36 @@ def calculate_frequency(samples, sample_rate):
     return frequency
 
 
+def detect_waveform_shape(samples):
+    # Normalize samples to range [0, 1]
+    normalized_samples = (samples - np.min(samples)) / (
+        np.max(samples) - np.min(samples)
+    )
+
+    # Calculate the threshold for detecting voltage levels
+    threshold = 0.5
+
+    # Count number of peaks and troughs
+    peaks = (normalized_samples[:-1] < threshold) & (
+        normalized_samples[1:] >= threshold
+    )
+    troughs = (normalized_samples[:-1] >= threshold) & (
+        normalized_samples[1:] < threshold
+    )
+
+    num_peaks = np.sum(peaks)
+    num_troughs = np.sum(troughs)
+
+    if num_peaks == 0 and num_troughs == 0:
+        return "No Voltage"
+    elif num_peaks > 2 and num_troughs > 2:
+        return "Square Wave"
+    elif num_peaks > 2:
+        return "Triangle Wave"
+    else:
+        return "Sine Wave"
+
+
 def main():
     sample_rate = 1000  # Samples per second
     duration = 5  # Duration in seconds
@@ -46,7 +77,10 @@ def main():
         time.sleep(1.0 / sample_rate)
 
     frequency = calculate_frequency(samples, sample_rate)
+    shape = detect_waveform_shape(np.array(samples))
+
     print(f"Calculated Frequency: {frequency:.2f} Hz")
+    print(f"Detected Waveform Shape: {shape}")
 
     # Cleanup
     GPIO.cleanup()
