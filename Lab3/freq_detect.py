@@ -38,41 +38,46 @@ def moving_average_filter(samples, window_size=5):
     return np.convolve(samples, np.ones(window_size) / window_size, mode="same")
 
 
-def detect_waveform_shape(samples):
+def detect_waveform_shape_fft(samples, sample_rate):
     # Apply the moving average filter to denoise the signal
-    filtered_samples = samples
+    filtered_samples = moving_average_filter(samples)
 
-    # Find the peak: maximum value in the filtered samples
-    peak_index = np.argmax(filtered_samples)
-    peak_value = filtered_samples[peak_index]
+    # Perform FFT on the filtered signal
+    fft_result = np.fft.fft(filtered_samples)
+    fft_freq = np.fft.fftfreq(len(filtered_samples), 1 / sample_rate)
 
-    # Analyze slopes before the peak
-    num_points_for_slope = 2  # Number of points to calculate slope over
-    left_slope = None
+    # Consider only the positive frequencies (ignore negative part of FFT)
+    positive_freqs = fft_freq[: len(fft_freq) // 2]
+    positive_fft_result = np.abs(fft_result[: len(fft_result) // 2])
 
-    if peak_index > num_points_for_slope:
-        # Calculate the slope to the left of the peak using 2 points
-        left_slope = (
-            filtered_samples[peak_index]
-            - filtered_samples[peak_index - num_points_for_slope]
-        ) / num_points_for_slope
+    # Find the fundamental frequency (the highest peak in the FFT)
+    fundamental_freq_index = np.argmax(positive_fft_result)
+    fundamental_freq = positive_freqs[fundamental_freq_index]
 
-    print(f"Peak Value: {peak_value}, Peak Index: {peak_index}")
-    print(f"Left Slope: {left_slope:.4f} (over {num_points_for_slope} points)")
+    print(f"Fundamental Frequency: {fundamental_freq:.2f} Hz")
 
-    # Classification based on the left slope
-    if left_slope is not None:
-        if abs(left_slope) < 0.15:  # Less than 0.24 -> Triangle wave
-            return "Triangle Wave"
-        else:  # Greater than or equal to 0.24 -> Sine wave
-            return "Sine Wave"
+    # Analyze harmonic content to classify waveform
+    harmonic_peaks = positive_fft_result[fundamental_freq_index::2]  # Odd harmonics
+    harmonic_strengths = harmonic_peaks[:5]  # Look at first 5 harmonics
+
+    print(f"Harmonic Strengths: {harmonic_strengths}")
+
+    # Classification based on harmonic content
+    if np.all(harmonic_strengths < 0.1 * positive_fft_result[fundamental_freq_index]):
+        return "Sine Wave"
+    elif np.any(harmonic_strengths > 0.1 * positive_fft_result[fundamental_freq_index]):
+        return (
+            "Square Wave"
+            if harmonic_strengths[1] > harmonic_strengths[2]
+            else "Triangle Wave"
+        )
 
     return "Unknown Waveform"
 
 
 def main():
-    sample_rate = 10000  # Samples per second
-    duration = 3  # Duration in seconds
+    sample_rate = 1000  # Samples per second
+    duration = 5  # Duration in seconds
     num_samples = sample_rate * duration
 
     samples = []
