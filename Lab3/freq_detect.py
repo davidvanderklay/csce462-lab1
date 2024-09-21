@@ -39,10 +39,8 @@ def detect_waveform_shape(samples):
         np.max(samples) - np.min(samples)
     )
 
-    # Calculate the threshold for detecting voltage levels
+    # Count peaks and troughs using a simple threshold
     threshold = 0.5
-
-    # Count number of peaks and troughs
     peaks = (normalized_samples[:-1] < threshold) & (
         normalized_samples[1:] >= threshold
     )
@@ -53,11 +51,15 @@ def detect_waveform_shape(samples):
     num_peaks = np.sum(peaks)
     num_troughs = np.sum(troughs)
 
+    # Analyze waveform shape
     if num_peaks == 0 and num_troughs == 0:
         return "No Voltage"
-    elif num_peaks > 2 and num_troughs > 2:
-        return "Square Wave"
-    elif num_peaks > 2:
+    elif num_peaks > 10:  # Adjust the threshold based on your requirements
+        # Check for square wave characteristics
+        if np.std(normalized_samples) < 0.1:  # Low variance indicates a flat signal
+            return "Square Wave"
+        return "Triangle Wave"
+    elif num_peaks > 2 and num_peaks < 10:
         return "Triangle Wave"
     else:
         return "Sine Wave"
