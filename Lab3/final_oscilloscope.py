@@ -31,7 +31,7 @@ def moving_average_filter(samples, window_size=5):
 def detect_waveform_shape(samples, sample_rate):
     # set at slightly above floating voltage
     print("The max voltage is", np.max(samples))
-    if np.max(samples) < 1.02:
+    if np.max(samples) < 1.1:
         print("returning no voltage")
         return "No Voltage"
 
@@ -57,7 +57,8 @@ def detect_waveform_shape(samples, sample_rate):
     )
     # more magic statistics to measure data dispersion
     kurtosis = stats.kurtosis(normalized_samples)
-
+    print(f"Crest Factor: {crest_factor}")
+    print(f"Kurtosis: {kurtosis}")
     if (
         np.max(positive_fft_result[fundamental_freq_index::2])
         > 0.1 * positive_fft_result[fundamental_freq_index]
