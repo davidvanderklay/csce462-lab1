@@ -15,7 +15,7 @@ cs = digitalio.DigitalInOut(board.D5)
 # Create the MCP object
 mcp = MCP.MCP3008(spi, cs)
 # Create an analog input channel on pin 0
-chan = AnalogIn(mcp, MCP.P0)
+chan = AnalogIn(mcp, MCP.P1, MCP.P0)
 
 
 def calculate_frequency(samples, sample_rate):
