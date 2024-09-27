@@ -7,7 +7,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 mpu = adafruit_mpu6050.MPU6050(i2c)
 
 step_count = 0
-threshold = 8  # threshold for step detection
+threshold = 9  # threshold for step detection
 last_z_accel = 0
 step_interval = 0.3  # minimum time between to avoid false detection
 last_step_time = 0
