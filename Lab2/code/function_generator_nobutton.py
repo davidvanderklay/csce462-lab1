@@ -45,9 +45,8 @@ def get_user_input():
 
 def generate_waveform(shape, frequency, max_voltage):
     t = 0.0
-    points_per_cycle = 1000  # Increased number of points for a smoother waveform
-    tStep = 1 / (frequency * points_per_cycle)  # Finer time step
-    max_dac_value = 65535  # 12-bit DAC
+    tStep = 1 / (frequency * 100)  # finer time step for smoother waveform
+    max_dac_value = 65535  # range for 12 bits
     print("-Generating waveform...")
 
     while True:
@@ -71,7 +70,7 @@ def generate_waveform(shape, frequency, max_voltage):
         elif shape == "sin":
             voltage = (
                 0.5 * max_voltage * (1 + math.sin(2 * math.pi * frequency * t))
-            )  # smoother sin wave scaling
+            )  # proper scaling for sin wave
             value = int((voltage / 5.5) * max_dac_value)
         else:
             print("Invalid waveform shape.")
