@@ -18,11 +18,11 @@ def get_user_input():
 
     while True:
         try:
-            frequency = float(input("Enter frequency (up to 50 Hz): ").strip())
-            if 0 < frequency <= 50:
+            frequency = float(input("Enter frequency (up to 5000 Hz): ").strip())
+            if 0 < frequency <= 5000:
                 break
             else:
-                print("Frequency must be greater than 0 and up to 50 Hz.")
+                print("Frequency must be greater than 0 and up to 5000 Hz.")
         except ValueError:
             print("Invalid input. Please enter a numeric value for frequency.")
 
@@ -45,8 +45,11 @@ def get_user_input():
 
 def generate_waveform(shape, frequency, max_voltage):
     t = 0.0
-    tStep = 1 / (frequency * 100)  # finer time step for smoother waveform
-    max_dac_value = 65535  # range for 12 bits
+    points_per_cycle = 1000  # Number of points per cycle for a smooth waveform
+    tStep = 1 / (
+        frequency * points_per_cycle
+    )  # Time step for higher frequency waveforms
+    max_dac_value = 65535  # 12-bit DAC range
     print("-Generating waveform...")
 
     while True:
@@ -58,7 +61,7 @@ def generate_waveform(shape, frequency, max_voltage):
                 voltage = max_voltage
             else:
                 voltage = 0
-            value = int((voltage / 5.5) * max_dac_value)  # scale voltage to DAC value
+            value = int((voltage / 5.5) * max_dac_value)  # Scale voltage to DAC value
         elif shape == "triangle":
             cycle_time = 1 / frequency
             time_in_cycle = t % cycle_time
@@ -70,7 +73,7 @@ def generate_waveform(shape, frequency, max_voltage):
         elif shape == "sin":
             voltage = (
                 0.5 * max_voltage * (1 + math.sin(2 * math.pi * frequency * t))
-            )  # proper scaling for sin wave
+            )  # Proper scaling for sine wave
             value = int((voltage / 5.5) * max_dac_value)
         else:
             print("Invalid waveform shape.")
@@ -80,8 +83,11 @@ def generate_waveform(shape, frequency, max_voltage):
         dac.value = value
         # Increment time
         t += tStep
-        # Wait for next step
-        time.sleep(tStep)
+
+        # Remove time.sleep() for higher frequency accuracy
+        if frequency > 100:
+            # Only add time.sleep for low frequencies where precise timing is less critical
+            time.sleep(tStep)
 
 
 def main():
