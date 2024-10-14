@@ -3,7 +3,7 @@
 #include <wiringPi.h>
 
 #define outputPin 1 // WiringPi pin 1 corresponds to GPIO18, which supports PWM
-#define FREQ 5000   // 5 kHz
+#define FREQ 1000   // 5 kHz
 
 void tone() {
   long half_cycle =
