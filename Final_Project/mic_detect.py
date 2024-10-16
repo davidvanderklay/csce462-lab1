@@ -4,47 +4,64 @@ import board
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 import time
-import RPi.GPIO as GPIO
+import wave
 import numpy as np
 
 # Create the SPI bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
 # Create the CS (chip select)
-cs = digitalio.DigitalInOut(board.D4)
+cs = digitalio.DigitalInOut(board.D5)
 # Create the MCP object
 mcp = MCP.MCP3008(spi, cs)
 # Create an analog input channel on pin 0
 chan = AnalogIn(mcp, MCP.P0)
 
 
+def voltage_to_pcm(voltage, max_voltage=3.3):
+    """Convert a voltage reading to a PCM value."""
+    max_pcm_value = 32767  # 16-bit audio format
+    scaled_value = int((voltage / max_voltage) * max_pcm_value)
+    return np.clip(scaled_value, -max_pcm_value, max_pcm_value)
+
+
 def main():
-    sample_rate = 2000  # 2000 Hz
-    duration = 0.5  # 0.5 seconds for faster updates
+    sample_rate = 44100  # 44.1 kHz sample rate, standard for audio files
+    duration = 5  # Record for 5 seconds
     num_samples = int(sample_rate * duration)
+    output_file = "microphone_output.wav"  # Output audio file
 
     try:
-        while True:
+        # Open the WAV file for writing
+        with wave.open(output_file, "w") as wf:
+            # Set the parameters for the WAV file (1 channel, 16 bits per sample, 44.1 kHz sample rate)
+            wf.setnchannels(1)
+            wf.setsampwidth(2)  # 2 bytes per sample (16-bit audio)
+            wf.setframerate(sample_rate)
+
+            print(f"Recording {duration} seconds of audio...")
+
             samples = []
             start_time = time.time()
 
             for _ in range(num_samples):
                 voltage = chan.voltage  # Read voltage from MCP3008
+                pcm_value = voltage_to_pcm(voltage)  # Convert voltage to PCM
+                wf.writeframes(
+                    pcm_value.to_bytes(2, byteorder="little", signed=True)
+                )  # Write PCM data to WAV
                 samples.append(voltage)
-                print(f"Voltage: {voltage:.2f} V")  # Print each voltage reading
-                time.sleep(1 / sample_rate)  # Sample at the given sample rate
+
+                # Sleep to maintain consistent sampling rate
+                time.sleep(1 / sample_rate)
 
             actual_sample_rate = num_samples / (time.time() - start_time)
-            samples = np.array(samples)
-
-            print(f"Actual sample rate: {actual_sample_rate:.2f} Hz")
-            print("---")
-
-            time.sleep(0.5)  # Pause between each batch of readings
+            print(
+                f"Recording complete. Actual sample rate: {actual_sample_rate:.2f} Hz"
+            )
+            print(f"Audio saved to {output_file}")
 
     except KeyboardInterrupt:
         print("\nExiting program.")
-    finally:
-        GPIO.cleanup()
 
 
 if __name__ == "__main__":
