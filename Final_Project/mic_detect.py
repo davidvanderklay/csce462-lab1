@@ -4,8 +4,7 @@ import board
 import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 import time
-import wave
-import numpy as np
+import csv
 
 # Create the SPI bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
@@ -17,47 +16,28 @@ mcp = MCP.MCP3008(spi, cs)
 chan = AnalogIn(mcp, MCP.P0)
 
 
-def voltage_to_pcm(voltage, max_voltage=3.3):
-    """Convert a voltage reading to a PCM value."""
-    max_pcm_value = 32767  # 16-bit audio format
-    scaled_value = int((voltage / max_voltage) * max_pcm_value)  # Convert to int
-    return np.clip(scaled_value, -max_pcm_value, max_pcm_value)
-
-
 def main():
-    sample_rate = 500  # 44.1 kHz sample rate, standard for audio files
+    sample_rate = 1000  # Reduced sample rate to 1000 Hz
     duration = 5  # Record for 5 seconds
     num_samples = int(sample_rate * duration)
-    output_file = "microphone_output.wav"  # Output audio file
+    output_file = "microphone_data.csv"  # Output CSV file
 
     try:
-        # Open the WAV file for writing
-        with wave.open(output_file, "w") as wf:
-            # Set the parameters for the WAV file (1 channel, 16 bits per sample, 44.1 kHz sample rate)
-            wf.setnchannels(1)
-            wf.setsampwidth(2)  # 2 bytes per sample (16-bit audio)
-            wf.setframerate(sample_rate)
+        with open(output_file, mode="w", newline="") as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(["Timestamp", "Voltage"])  # Header for CSV
 
-            print(f"Recording {duration} seconds of audio...")
+            print(f"Recording {duration} seconds of data at {sample_rate} Hz...")
 
             start_time = time.time()
 
             for _ in range(num_samples):
-                voltage = chan.voltage  # Read voltage from MCP3008
-                pcm_value = voltage_to_pcm(voltage)  # Convert voltage to PCM
-                # Convert pcm_value to a standard Python integer before writing
-                wf.writeframes(
-                    int(pcm_value).to_bytes(2, byteorder="little", signed=True)
-                )  # Write PCM data to WAV
+                timestamp = time.time() - start_time
+                voltage = chan.voltage
+                csvwriter.writerow([timestamp, voltage])
+                time.sleep(1 / sample_rate)  # Wait for the next sample
 
-                # Sleep to maintain consistent sampling rate
-                time.sleep(1 / sample_rate)
-
-            actual_sample_rate = num_samples / (time.time() - start_time)
-            print(
-                f"Recording complete. Actual sample rate: {actual_sample_rate:.2f} Hz"
-            )
-            print(f"Audio saved to {output_file}")
+            print(f"Data recording saved to {output_file}")
 
     except KeyboardInterrupt:
         print("\nExiting program.")
