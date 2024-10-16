@@ -25,7 +25,7 @@ def voltage_to_pcm(voltage, max_voltage=3.3):
 
 
 def main():
-    sample_rate = 44100  # 44.1 kHz sample rate, standard for audio files
+    sample_rate = 8000  # 44.1 kHz sample rate, standard for audio files
     duration = 5  # Record for 5 seconds
     num_samples = int(sample_rate * duration)
     output_file = "microphone_output.wav"  # Output audio file
