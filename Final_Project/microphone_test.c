@@ -11,8 +11,7 @@
 int main(void) {
   // Initialize WiringPi and MCP3004/3008
   wiringPiSetup();
-  mcp3004Setup(BASE,
-               SPI_CHAN); // Use MCP3004/3008 with BASE 100 and SPI channel 0
+  mcp3004Setup(BASE, SPI_CHAN); // Use MCP3004/3008 with BASE 100 and SPI channel 0
 
   // Main loop to read from microphone
   while (1) {
