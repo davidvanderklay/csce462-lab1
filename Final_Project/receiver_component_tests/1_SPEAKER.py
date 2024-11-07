@@ -3,7 +3,7 @@ import time
 
 # Configuration
 SPEAKER_PIN = 18  # GPIO pin connected to the speaker
-FREQUENCY = 15000  # Frequency of the sound in Hz (15 kHz)
+FREQUENCY = 1000  # Frequency of the sound in Hz (15 kHz)
 DURATION = 2  # Duration of sound emission in seconds
 
 
