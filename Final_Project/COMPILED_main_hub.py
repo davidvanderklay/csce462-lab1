@@ -14,14 +14,22 @@ factory = PiGPIOFactory()
 factory2 = PiGPIOFactory()
 factory3 = PiGPIOFactory()
 
-servo = Servo(12, min_pulse_width=0.42/1000, max_pulse_width=2.35/1000, pin_factory=factory)
-servo2 = Servo(13, min_pulse_width=0.42/1000, max_pulse_width=2.35/1000, pin_factory=factory2)
-servo3 = Servo(26, min_pulse_width=0.42/1000, max_pulse_width=2.35/1000, pin_factory=factory3)
-
+servo = Servo(
+    12, min_pulse_width=0.42 / 1000, max_pulse_width=2.35 / 1000, pin_factory=factory
+)
+servo2 = Servo(
+    13, min_pulse_width=0.42 / 1000, max_pulse_width=2.35 / 1000, pin_factory=factory2
+)
+servo3 = Servo(
+    26, min_pulse_width=0.42 / 1000, max_pulse_width=2.35 / 1000, pin_factory=factory3
+)
 # Constants
 SPEED_OF_SOUND = 343.0  # Speed of sound in m/s
-MIC_DISTANCE = 0.1  # Distance between microphones in meters
+MIC_DISTANCE = 0.1  # Distance between the center and each microphone in meters
 TIMEOUT = 1.0  # Timeout for signal detection in seconds
+
+# Define microphone positions in radians (e.g., 0, 120, and 240 degrees)
+MIC_ANGLES = [0, 2 * math.pi / 3, 4 * math.pi / 3]
 
 # Variables
 mic_times = [None, None, None]
@@ -39,11 +47,13 @@ def init_gpio():
 def cleanup_gpio():
     GPIO.cleanup()
 
+
 def randomMovement():
     twoMotors = random.randint(-90, 90)
     servo.value = math.sin(math.radians(random.randint(-90, 90)))
     servo2.value = math.sin(math.radians(twoMotors))
     servo3.value = math.sin(math.radians(twoMotors))
+
 
 def mic_callback(channel):
     global mic_times
@@ -62,21 +72,43 @@ def emit_beep(frequency=15000, duration=0.1):
     pwm.stop()
 
 
+def calculate_distance():
+    # calculates based on the easrliest time of the thing
+    # Find the first non-None time (earliest detection)
+    first_time = min(t for t in mic_times if t is not None)
+    time_elapsed = first_time - start_time
+
+    # Calculate distance based on the time and speed of sound
+    estimated_distance = time_elapsed * SPEED_OF_SOUND
+    print(f"Estimated distance to sound source: {estimated_distance:.2f} meters")
+    return estimated_distance
+
+
 def calculate_position():
+    # Calculate the time differences from the start time
     time_diffs = [t - start_time for t in mic_times]
     print(f"Time differences: {time_diffs}")
 
-    # Calculate distance differences
+    # Calculate distance differences for each microphone
     dist_diffs = [td * SPEED_OF_SOUND for td in time_diffs]
     print(f"Distance differences: {dist_diffs}")
 
-    # Simple calculation assuming linear microphone placement
-    angle = math.degrees(math.acos((dist_diffs[1] - dist_diffs[0]) / MIC_DISTANCE))
-    print(f"Calculated angle: {angle} degrees")
+    # Estimate the angle of the sound source based on time differences and positions
+    # Using trilateration method in a circular layout
+    x = sum(d * math.cos(angle) for d, angle in zip(dist_diffs, MIC_ANGLES))
+    y = sum(d * math.sin(angle) for d, angle in zip(dist_diffs, MIC_ANGLES))
 
-    # Move servos to point towards the object
-    # servo_pan.angle = angle
-    # servo_tilt.angle = 90  # Assuming horizontal movement only for simplicity
+    # Calculate the angle in degrees from the center of the circle
+    calculated_angle = math.degrees(math.atan2(y, x))
+    calculated_angle = (
+        calculated_angle if calculated_angle >= 0 else calculated_angle + 360
+    )
+    print(f"Calculated angle: {calculated_angle:.2f} degrees")
+
+    # Calculate the distance to the sound source
+    estimated_distance = calculate_distance()
+
+    # Move servos to point towards the estimated angle of the sound source
     randomMovement()
 
 
