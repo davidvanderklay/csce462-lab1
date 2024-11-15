@@ -73,32 +73,38 @@ def emit_beep(frequency=15000, duration=0.1):
 
 
 def calculate_distance():
-    # calculates based on the easrliest time of the thing
-    # Find the first non-None time (earliest detection)
-    first_time = min(t for t in mic_times if t is not None)
-    time_elapsed = first_time - start_time
+    # Filter out None values to consider only detected times
+    valid_times = [t for t in mic_times if t is not None]
 
-    # Calculate distance based on the time and speed of sound
-    estimated_distance = time_elapsed * SPEED_OF_SOUND
-    print(f"Estimated distance to sound source: {estimated_distance:.2f} meters")
+    # Calculate distances based on each time and speed of sound
+    distances = [(t - start_time) * SPEED_OF_SOUND for t in valid_times]
+
+    # Compute the average distance
+    estimated_distance = sum(distances) / len(distances) if distances else 0
+    print(
+        f"Estimated average distance to sound source: {estimated_distance:.2f} meters"
+    )
+
     return estimated_distance
 
 
 def calculate_position():
-    # Calculate the time differences from the start time
+    # gather times relative to start times
     time_diffs = [t - start_time for t in mic_times]
     print(f"Time differences: {time_diffs}")
 
-    # Calculate distance differences for each microphone
+    # multiple by speed of sound to get distances from the times for each
     dist_diffs = [td * SPEED_OF_SOUND for td in time_diffs]
     print(f"Distance differences: {dist_diffs}")
 
-    # Estimate the angle of the sound source based on time differences and positions
     # Using trilateration method in a circular layout
+    # summation of distances of each mic multiplied by the cos and sin of their angles
+    # sum the projections of vectors onto the x and y axis
     x = sum(d * math.cos(angle) for d, angle in zip(dist_diffs, MIC_ANGLES))
     y = sum(d * math.sin(angle) for d, angle in zip(dist_diffs, MIC_ANGLES))
 
     # Calculate the angle in degrees from the center of the circle
+    # convert coords to an angle
     calculated_angle = math.degrees(math.atan2(y, x))
     calculated_angle = (
         calculated_angle if calculated_angle >= 0 else calculated_angle + 360
