@@ -1,35 +1,43 @@
-import RPi.GPIO as GPIO
+import pigpio
 import time
 
 # Configuration
 SPEAKER_PIN = 18  # GPIO pin connected to the speaker
-FREQUENCY = 15000  # Frequency of the sound in Hz (15 kHz)
-DURATION = 2  # Duration of sound emission in seconds
+FREQUENCY = 15000  # Frequency in Hz
+DURATION = 2  # Duration in seconds
 
 
-def emit_beep(frequency=FREQUENCY, duration=DURATION):
-    """
-    Emit a sound at the specified frequency and duration using PWM.
-    """
-    pwm = GPIO.PWM(SPEAKER_PIN, frequency)
-    pwm.start(50)  # 50% duty cycle
-    print(f"Emitting {frequency} Hz sound for {duration} seconds.")
-    time.sleep(duration)
-    pwm.stop()
-    print("Sound emission complete.")
+def generate_tone(frequency, duration):
+    pi = pigpio.pi()
+    if not pi.connected:
+        print("Could not connect to pigpio daemon.")
+        return
 
+    pi.set_mode(SPEAKER_PIN, pigpio.OUTPUT)
 
-def main():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(SPEAKER_PIN, GPIO.OUT)
+    # Start square wave
+    pi.wave_add_new()
+    wave = []
+    high_time = int(500000 / frequency)  # Microseconds for HIGH
+    low_time = high_time  # Microseconds for LOW
+    wave.append(pigpio.pulse(1 << SPEAKER_PIN, 0, high_time))  # Set HIGH
+    wave.append(pigpio.pulse(0, 1 << SPEAKER_PIN, low_time))  # Set LOW
+    pi.wave_add_generic(wave)
+    wave_id = pi.wave_create()
 
-    try:
-        emit_beep()
-    except KeyboardInterrupt:
-        print("\nTest interrupted by user.")
-    finally:
-        GPIO.cleanup()
+    if wave_id >= 0:
+        pi.wave_send_repeat(wave_id)
+        print(f"Generating {frequency} Hz tone for {duration} seconds.")
+        time.sleep(duration)
+        pi.wave_tx_stop()
+        pi.wave_delete(wave_id)
+
+    pi.stop()
+    print("Tone generation complete.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        generate_tone(FREQUENCY, DURATION)
+    except KeyboardInterrupt:
+        print("\nTest interrupted by user.")
