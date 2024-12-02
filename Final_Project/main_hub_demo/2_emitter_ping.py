@@ -1,5 +1,4 @@
 import time
-import keyboard  # Requires the `keyboard` module, install with `pip install keyboard`
 import pigpio
 
 # GPIO pin setup
@@ -26,14 +25,11 @@ def emit_response_signal(frequency=RESPONSE_FREQUENCY, duration=RESPONSE_DURATIO
 
 
 def main():
-    print("Receiver ready. Press 'r' to simulate receiving a ping and emit response.")
+    print("Receiver ready. Press Enter to emit response signal, or Ctrl+C to exit.")
     try:
         while True:
-            # Wait for user input to simulate receiving a ping
-            if keyboard.is_pressed("r"):
-                print("Ping received. Preparing to emit response...")
-                time.sleep(0.5)  # Small debounce to avoid multiple triggers
-                emit_response_signal()
+            input("Press Enter to simulate receiving a ping and emit response...")
+            emit_response_signal()
     except KeyboardInterrupt:
         print("Program terminated by user.")
     finally:
